@@ -3,6 +3,7 @@ import { McpProfileStore } from '../storage/mcp-profile.store';
 import { Scheduler } from '../scheduler/scheduler';
 import { WorkspaceManager } from '../workspace/workspace-manager';
 import { ProcessExecutor } from '../executors/process.executor';
+import { ContainerExecutor } from '../executors/container.executor';
 import { TaskNotFoundError } from '../shared/errors';
 import type { TaskRecord, TaskStatus, ExecutionMode, McpServerConfig } from '../shared/types';
 import type { CreateTaskInput } from '../api/schemas/task.schema';
@@ -66,7 +67,9 @@ export class TaskService {
     });
 
     // Enqueue for execution
-    const executor = new ProcessExecutor();
+    const executor = mode === 'container'
+      ? new ContainerExecutor()
+      : new ProcessExecutor();
     const timeout = input.timeout || this.deps.defaultTimeout;
 
     this.deps.scheduler.enqueue({
