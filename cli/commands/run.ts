@@ -21,19 +21,20 @@ export function runCommand() {
         body: JSON.stringify(body),
       });
 
-      if (!res.ok) { const err = await res.json(); console.error('Error:', err); process.exit(1); }
+      if (!res.ok) { const err = await res.json() as Record<string, unknown>; console.error('Error:', err); process.exit(1); }
 
-      const task = await res.json();
+      interface TaskResponse { id: string; status: string; result?: { data: unknown }; error?: unknown; }
+      const task = await res.json() as TaskResponse;
       console.log(`Task created: ${task.id}`);
       console.log(`Status: ${task.status}`);
 
       if (opts.wait) {
         console.log('Waiting for completion...');
-        let current = task;
+        let current: TaskResponse = task;
         while (current.status === 'queued' || current.status === 'running') {
           await new Promise((r) => setTimeout(r, 2000));
           const pollRes = await fetch(`${opts.server}/tasks/${task.id}`);
-          current = await pollRes.json();
+          current = await pollRes.json() as TaskResponse;
         }
         console.log(`\nFinal status: ${current.status}`);
         if (current.result) console.log('Result:', JSON.stringify(current.result.data, null, 2));

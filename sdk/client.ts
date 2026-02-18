@@ -48,10 +48,10 @@ export class ClaudeSwarm {
   private async get<T>(path: string): Promise<T> {
     const res = await fetch(`${this.baseUrl}${path}`);
     if (!res.ok) {
-      const body = await res.json();
+      const body = await res.json() as { error?: { code: string; message: string } };
       throw new ClaudeSwarmError(res.status, body.error || { code: 'UNKNOWN', message: 'Request failed' });
     }
-    return res.json();
+    return res.json() as Promise<T>;
   }
 
   private async post<T>(path: string, body: unknown): Promise<T> {
@@ -59,16 +59,16 @@ export class ClaudeSwarm {
       method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body),
     });
     if (!res.ok) {
-      const rb = await res.json();
+      const rb = await res.json() as { error?: { code: string; message: string } };
       throw new ClaudeSwarmError(res.status, rb.error || { code: 'UNKNOWN', message: 'Request failed' });
     }
-    return res.json();
+    return res.json() as Promise<T>;
   }
 
   private async delete(path: string): Promise<void> {
     const res = await fetch(`${this.baseUrl}${path}`, { method: 'DELETE' });
     if (!res.ok) {
-      const body = await res.json();
+      const body = await res.json() as { error?: { code: string; message: string } };
       throw new ClaudeSwarmError(res.status, body.error || { code: 'UNKNOWN', message: 'Request failed' });
     }
   }
