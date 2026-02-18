@@ -1,22 +1,64 @@
 {
   "name": "claude-swarm",
   "version": "0.1.0",
-  "description": "Claude-Code-as-a-Service platform",
-  "main": "dist/index.js",
-  "types": "dist/index.d.ts",
+  "description": "Claude-Code-as-a-Service platform — run Claude Code instances via API, CLI, or containers",
+  "main": "dist/src/index.js",
+  "types": "dist/src/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/src/index.d.ts",
+      "require": "./dist/src/index.js",
+      "default": "./dist/src/index.js"
+    },
+    "./sdk": {
+      "types": "./dist/sdk/index.d.ts",
+      "require": "./dist/sdk/index.js",
+      "default": "./dist/sdk/index.js"
+    }
+  },
   "bin": {
     "claude-swarm": "./dist/cli/index.js"
   },
+  "files": [
+    "dist",
+    "web/dist",
+    "README.md",
+    "LICENSE"
+  ],
   "scripts": {
     "build": "tsc",
+    "build:web": "cd web && npm install && npm run build",
+    "build:all": "npm run build && npm run build:web",
     "dev": "tsx watch src/index.ts",
     "dev:api": "tsx watch src/index.ts",
     "dev:web": "cd web && npm run dev",
-    "build:web": "cd web && npm run build",
-    "start": "node dist/index.js",
+    "start": "node dist/src/index.js",
     "test": "vitest",
     "test:run": "vitest run",
-    "lint": "eslint src --ext .ts"
+    "lint": "eslint src --ext .ts",
+    "prepublishOnly": "npm run test:run && npm run build:all"
+  },
+  "keywords": [
+    "claude",
+    "claude-code",
+    "anthropic",
+    "ai",
+    "automation",
+    "llm",
+    "task-runner",
+    "code-generation",
+    "swarm",
+    "claude-as-a-service"
+  ],
+  "author": "Federico Costa",
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/cardinal-solar/claude-swarm.git"
+  },
+  "homepage": "https://github.com/cardinal-solar/claude-swarm#readme",
+  "bugs": {
+    "url": "https://github.com/cardinal-solar/claude-swarm/issues"
   },
   "engines": {
     "node": ">=20.0.0"
