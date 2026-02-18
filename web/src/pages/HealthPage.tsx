@@ -34,7 +34,7 @@ export function HealthPage() {
   return (
     <div className="space-y-4">
       <h2 className="text-xl font-semibold text-gray-900">Health</h2>
-      <div className="grid grid-cols-4 gap-4">
+      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
         <KpiCard label="Running" value={scheduler.running} sub={`of ${scheduler.maxConcurrency} slots`} />
         <KpiCard label="Queued" value={scheduler.queued} />
         <KpiCard label="Utilization" value={`${utilization}%`} />

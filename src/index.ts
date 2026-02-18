@@ -26,7 +26,10 @@ const app = createApp({
   defaultMode: config.defaultMode,
   defaultTimeout: config.defaultTimeout,
   logLevel: config.logLevel,
-  webDistDir: path.join(__dirname, '..', 'web', 'dist'),
+  webDistDir: (() => {
+    const webDistPath = path.join(__dirname, '..', 'web', 'dist');
+    return fs.existsSync(webDistPath) ? webDistPath : undefined;
+  })(),
 });
 
 serve({

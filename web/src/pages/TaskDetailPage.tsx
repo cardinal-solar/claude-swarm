@@ -18,7 +18,7 @@ export function TaskDetailPage() {
         <StatusBadge status={task.status} />
       </div>
 
-      <div className="grid grid-cols-2 gap-6">
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
         {/* Info card */}
         <div className="bg-white rounded-lg border border-gray-200 p-5 space-y-3">
           <h3 className="text-sm font-medium text-gray-500 uppercase">Info</h3>

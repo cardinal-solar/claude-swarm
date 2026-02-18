@@ -39,11 +39,11 @@ async function fetchJson<T>(path: string, init?: RequestInit): Promise<T> {
 export const api = {
   tasks: {
     list: (status?: string) => {
-      const qs = status ? `?status=${status}` : '';
+      const qs = status ? `?status=${encodeURIComponent(status)}` : '';
       return fetchJson<TaskRecord[]>(`/tasks${qs}`);
     },
-    get: (id: string) => fetchJson<TaskRecord>(`/tasks/${id}`),
-    cancel: (id: string) => fetchJson<{ ok: boolean }>(`/tasks/${id}`, { method: 'DELETE' }),
+    get: (id: string) => fetchJson<TaskRecord>(`/tasks/${encodeURIComponent(id)}`),
+    cancel: (id: string) => fetchJson<{ ok: boolean }>(`/tasks/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   },
   profiles: {
     list: () => fetchJson<McpProfile[]>('/mcp-profiles'),
@@ -53,7 +53,7 @@ export const api = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(data),
       }),
-    delete: (id: string) => fetchJson<{ ok: boolean }>(`/mcp-profiles/${id}`, { method: 'DELETE' }),
+    delete: (id: string) => fetchJson<{ ok: boolean }>(`/mcp-profiles/${encodeURIComponent(id)}`, { method: 'DELETE' }),
   },
   health: () => fetchJson<HealthResponse>('/health'),
 };

@@ -10,6 +10,10 @@ export function ProfilesPage() {
   const [formError, setFormError] = useState('');
 
   async function handleCreate() {
+    if (!name.trim()) {
+      setFormError('Name is required');
+      return;
+    }
     try {
       const servers = JSON.parse(serverJson);
       await api.profiles.create({ name, servers });
@@ -22,9 +26,14 @@ export function ProfilesPage() {
     }
   }
 
-  async function handleDelete(id: string) {
-    await api.profiles.delete(id);
-    refresh();
+  async function handleDelete(id: string, name: string) {
+    if (!confirm(`Delete profile "${name}"?`)) return;
+    try {
+      await api.profiles.delete(id);
+      refresh();
+    } catch (e) {
+      setFormError((e as Error).message);
+    }
   }
 
   return (
@@ -79,7 +88,7 @@ export function ProfilesPage() {
                 <p className="text-xs text-gray-500">{p.servers.length} server(s) - Created {new Date(p.createdAt).toLocaleDateString()}</p>
               </div>
               <button
-                onClick={() => handleDelete(p.id)}
+                onClick={() => handleDelete(p.id, p.name)}
                 className="text-xs text-red-600 hover:text-red-800 font-medium"
               >
                 Delete

@@ -51,10 +51,15 @@ export function createApp(opts: AppOptions) {
       rewriteRequestPath: (p) => p.replace(/^\/app/, ''),
     }));
     app.get('/', (c) => c.redirect('/app/'));
-    app.get('/app/*', serveStatic({
-      root: webDistDir,
-      rewriteRequestPath: () => '/index.html',
-    }));
+    // SPA fallback: only for routes without file extensions
+    app.get('/app/*', async (c, next) => {
+      if (c.req.path.match(/\.\w+$/)) return next();
+      const handler = serveStatic({
+        root: webDistDir,
+        rewriteRequestPath: () => '/index.html',
+      });
+      return handler(c, next);
+    });
   }
 
   return app;
