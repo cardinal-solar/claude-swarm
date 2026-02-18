@@ -15,7 +15,7 @@ describe('ClaudeSwarm SDK', () => {
     const client = new ClaudeSwarm({ baseUrl: 'http://localhost:3000' });
     const task = await client.createTask({ prompt: 'hi', apiKey: 'sk-test' });
     expect(task.id).toBe('task-1');
-    expect(globalThis.fetch).toHaveBeenCalledWith('http://localhost:3000/tasks', expect.objectContaining({ method: 'POST' }));
+    expect(globalThis.fetch).toHaveBeenCalledWith('http://localhost:3000/api/tasks', expect.objectContaining({ method: 'POST' }));
   });
 
   it('gets a task by ID', async () => {

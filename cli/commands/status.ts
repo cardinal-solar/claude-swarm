@@ -6,7 +6,7 @@ export function statusCommand() {
     .argument('<id>', 'Task ID')
     .option('-s, --server <url>', 'Server URL', 'http://localhost:3000')
     .action(async (id, opts) => {
-      const res = await fetch(`${opts.server}/tasks/${id}`);
+      const res = await fetch(`${opts.server}/api/tasks/${id}`);
       if (!res.ok) { console.error('Task not found'); process.exit(1); }
       console.log(JSON.stringify(await res.json(), null, 2));
     });

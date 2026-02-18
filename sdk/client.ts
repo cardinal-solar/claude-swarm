@@ -14,27 +14,27 @@ export class ClaudeSwarm {
   constructor(opts: ClaudeSwarmOptions) { this.baseUrl = opts.baseUrl.replace(/\/$/, ''); }
 
   async createTask(input: { prompt: string; apiKey: string; [key: string]: unknown }): Promise<TaskRecord> {
-    return this.post('/tasks', input);
+    return this.post('/api/tasks', input);
   }
 
-  async getTask(id: string): Promise<TaskRecord> { return this.get(`/tasks/${id}`); }
+  async getTask(id: string): Promise<TaskRecord> { return this.get(`/api/tasks/${id}`); }
 
   async listTasks(filter?: { status?: string }): Promise<TaskRecord[]> {
     const params = new URLSearchParams();
     if (filter?.status) params.set('status', filter.status);
     const qs = params.toString();
-    return this.get(`/tasks${qs ? `?${qs}` : ''}`);
+    return this.get(`/api/tasks${qs ? `?${qs}` : ''}`);
   }
 
-  async cancelTask(id: string): Promise<void> { await this.delete(`/tasks/${id}`); }
+  async cancelTask(id: string): Promise<void> { await this.delete(`/api/tasks/${id}`); }
 
   async createMcpProfile(input: { name: string; servers: unknown[] }): Promise<McpProfile> {
-    return this.post('/mcp-profiles', input);
+    return this.post('/api/mcp-profiles', input);
   }
 
-  async listMcpProfiles(): Promise<McpProfile[]> { return this.get('/mcp-profiles'); }
+  async listMcpProfiles(): Promise<McpProfile[]> { return this.get('/api/mcp-profiles'); }
 
-  async deleteMcpProfile(id: string): Promise<void> { await this.delete(`/mcp-profiles/${id}`); }
+  async deleteMcpProfile(id: string): Promise<void> { await this.delete(`/api/mcp-profiles/${id}`); }
 
   async waitForCompletion(id: string, pollIntervalMs = 2000): Promise<TaskRecord> {
     let task = await this.getTask(id);

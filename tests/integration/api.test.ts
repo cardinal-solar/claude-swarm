@@ -46,7 +46,7 @@ describe('API Integration', () => {
 
   describe('GET /health', () => {
     it('returns ok status', async () => {
-      const res = await app.request('/health');
+      const res = await app.request('/api/health');
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body.status).toBe('ok');
@@ -56,7 +56,7 @@ describe('API Integration', () => {
 
   describe('POST /mcp-profiles', () => {
     it('creates a profile', async () => {
-      const res = await app.request('/mcp-profiles', {
+      const res = await app.request('/api/mcp-profiles', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
@@ -73,12 +73,12 @@ describe('API Integration', () => {
 
   describe('GET /mcp-profiles', () => {
     it('lists profiles', async () => {
-      await app.request('/mcp-profiles', {
+      await app.request('/api/mcp-profiles', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ name: 'p1', servers: [] }),
       });
-      const res = await app.request('/mcp-profiles');
+      const res = await app.request('/api/mcp-profiles');
       expect(res.status).toBe(200);
       const body = await res.json();
       expect(body).toHaveLength(1);
@@ -87,7 +87,7 @@ describe('API Integration', () => {
 
   describe('POST /tasks', () => {
     it('returns 400 for invalid request', async () => {
-      const res = await app.request('/tasks', {
+      const res = await app.request('/api/tasks', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({}),
@@ -98,7 +98,7 @@ describe('API Integration', () => {
 
   describe('GET /tasks/:id', () => {
     it('returns 404 for unknown task', async () => {
-      const res = await app.request('/tasks/nonexistent');
+      const res = await app.request('/api/tasks/nonexistent');
       expect(res.status).toBe(404);
     });
   });

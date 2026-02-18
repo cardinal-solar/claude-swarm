@@ -15,7 +15,7 @@ export function runCommand() {
       if (opts.schema) body.schema = JSON.parse(opts.schema);
       if (opts.timeout) body.timeout = parseInt(opts.timeout, 10);
 
-      const res = await fetch(`${opts.server}/tasks`, {
+      const res = await fetch(`${opts.server}/api/tasks`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
@@ -33,7 +33,7 @@ export function runCommand() {
         let current: TaskResponse = task;
         while (current.status === 'queued' || current.status === 'running') {
           await new Promise((r) => setTimeout(r, 2000));
-          const pollRes = await fetch(`${opts.server}/tasks/${task.id}`);
+          const pollRes = await fetch(`${opts.server}/api/tasks/${task.id}`);
           current = await pollRes.json() as TaskResponse;
         }
         console.log(`\nFinal status: ${current.status}`);

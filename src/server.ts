@@ -35,9 +35,11 @@ export function createApp(opts: AppOptions) {
   const mcpProfileService = new McpProfileService(mcpProfileStore);
   const healthService = new HealthService(scheduler);
 
-  app.route('/tasks', taskRoutes(taskService));
-  app.route('/mcp-profiles', mcpProfileRoutes(mcpProfileService));
-  app.route('/health', healthRoutes(healthService));
+  const api = new Hono();
+  api.route('/tasks', taskRoutes(taskService));
+  api.route('/mcp-profiles', mcpProfileRoutes(mcpProfileService));
+  api.route('/health', healthRoutes(healthService));
+  app.route('/api', api);
 
   return app;
 }

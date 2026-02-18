@@ -61,7 +61,7 @@ describe('Smoke Test: Full Task Lifecycle', () => {
   });
 
   it('health endpoint returns scheduler status', async () => {
-    const res = await app.request('/health');
+    const res = await app.request('/api/health');
     const body = await res.json();
     expect(body.status).toBe('ok');
     expect(body.scheduler.maxConcurrency).toBe(2);
@@ -69,7 +69,7 @@ describe('Smoke Test: Full Task Lifecycle', () => {
 
   it('MCP profile CRUD lifecycle', async () => {
     // Create
-    const createRes = await app.request('/mcp-profiles', {
+    const createRes = await app.request('/api/mcp-profiles', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
@@ -81,25 +81,25 @@ describe('Smoke Test: Full Task Lifecycle', () => {
     const profile = await createRes.json();
 
     // List
-    const listRes = await app.request('/mcp-profiles');
+    const listRes = await app.request('/api/mcp-profiles');
     const profiles = await listRes.json();
     expect(profiles).toHaveLength(1);
 
     // Get
-    const getRes = await app.request(`/mcp-profiles/${profile.id}`);
+    const getRes = await app.request(`/api/mcp-profiles/${profile.id}`);
     expect(getRes.status).toBe(200);
 
     // Delete
-    const delRes = await app.request(`/mcp-profiles/${profile.id}`, { method: 'DELETE' });
+    const delRes = await app.request(`/api/mcp-profiles/${profile.id}`, { method: 'DELETE' });
     expect(delRes.status).toBe(200);
 
     // Verify deleted
-    const afterDelRes = await app.request('/mcp-profiles');
+    const afterDelRes = await app.request('/api/mcp-profiles');
     expect((await afterDelRes.json())).toHaveLength(0);
   });
 
   it('rejects invalid task creation', async () => {
-    const res = await app.request('/tasks', {
+    const res = await app.request('/api/tasks', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ prompt: '' }),

@@ -6,7 +6,7 @@ export function listCommand() {
     .option('-s, --server <url>', 'Server URL', 'http://localhost:3000')
     .option('--status <status>', 'Filter by status')
     .action(async (opts) => {
-      const url = new URL(`${opts.server}/tasks`);
+      const url = new URL(`${opts.server}/api/tasks`);
       if (opts.status) url.searchParams.set('status', opts.status);
       const res = await fetch(url.toString());
       const tasks = await res.json() as Array<{ id: string; status: string; prompt: string; duration?: number }>;
