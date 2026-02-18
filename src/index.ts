@@ -2,6 +2,7 @@ import { serve } from '@hono/node-server';
 import Database from 'better-sqlite3';
 import { drizzle } from 'drizzle-orm/better-sqlite3';
 import * as fs from 'fs';
+import * as path from 'path';
 import { createApp } from './server';
 import { getConfig } from './config';
 import { initializeDatabase } from './storage/database';
@@ -25,6 +26,7 @@ const app = createApp({
   defaultMode: config.defaultMode,
   defaultTimeout: config.defaultTimeout,
   logLevel: config.logLevel,
+  webDistDir: path.join(__dirname, '..', 'web', 'dist'),
 });
 
 serve({

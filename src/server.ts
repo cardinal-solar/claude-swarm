@@ -1,4 +1,6 @@
+import * as path from 'path';
 import { Hono } from 'hono';
+import { serveStatic } from '@hono/node-server/serve-static';
 import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { TaskStore } from './storage/task.store';
 import { McpProfileStore } from './storage/mcp-profile.store';
@@ -19,6 +21,7 @@ interface AppOptions {
   defaultMode: ExecutionMode;
   defaultTimeout: number;
   logLevel: string;
+  webDistDir?: string;
 }
 
 export function createApp(opts: AppOptions) {
@@ -40,6 +43,19 @@ export function createApp(opts: AppOptions) {
   api.route('/mcp-profiles', mcpProfileRoutes(mcpProfileService));
   api.route('/health', healthRoutes(healthService));
   app.route('/api', api);
+
+  if (opts.webDistDir) {
+    const webDistDir = path.relative(process.cwd(), opts.webDistDir);
+    app.use('/app/*', serveStatic({
+      root: webDistDir,
+      rewriteRequestPath: (p) => p.replace(/^\/app/, ''),
+    }));
+    app.get('/', (c) => c.redirect('/app/'));
+    app.get('/app/*', serveStatic({
+      root: webDistDir,
+      rewriteRequestPath: () => '/index.html',
+    }));
+  }
 
   return app;
 }
