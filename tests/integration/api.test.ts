@@ -7,7 +7,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
 
-// Mock the ProcessExecutor to avoid needing claude-code-manager
+// Mock the ProcessExecutor to avoid needing claude-task-runner
 vi.mock('../../src/executors/process.executor', () => {
   return {
     ProcessExecutor: class MockProcessExecutor {

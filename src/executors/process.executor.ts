@@ -1,8 +1,8 @@
-import { ClaudeCodeManager } from 'claude-code-manager';
+import { ClaudeCodeManager } from 'claude-task-runner';
 import type { Executor, ExecuteParams } from './executor.interface';
 import type { ExecutorResult } from '../shared/types';
 
-// Re-import zod from claude-code-manager's dependency to avoid Zod v3/v4 type mismatch.
+// Re-import zod from claude-task-runner's dependency to avoid Zod v3/v4 type mismatch.
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { z } = require('zod') as { z: typeof import('zod') };
 

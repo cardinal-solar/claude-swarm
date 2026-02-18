@@ -10,7 +10,7 @@ import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 
-// Mock the ProcessExecutor to avoid needing claude-code-manager.
+// Mock the ProcessExecutor to avoid needing claude-task-runner.
 // The execute mock returns a promise that never resolves so that the task
 // stays in 'running' status during synchronous assertions.
 vi.mock('../../../src/executors/process.executor', () => {

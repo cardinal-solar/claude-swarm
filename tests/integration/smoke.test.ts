@@ -7,7 +7,7 @@ import * as fs from 'fs/promises';
 import * as path from 'path';
 import * as os from 'os';
 
-// Mock executors to avoid needing real claude-code-manager / docker
+// Mock executors to avoid needing real claude-task-runner / docker
 vi.mock('../../src/executors/process.executor', () => {
   return {
     ProcessExecutor: class MockProcessExecutor {

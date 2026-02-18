@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { ProcessExecutor } from '../../../src/executors/process.executor';
 
-// Mock claude-code-manager
+// Mock claude-task-runner
 const mockExecute = vi.fn().mockResolvedValue({
   success: true,
   data: { answer: 42 },
@@ -11,7 +11,7 @@ const mockExecute = vi.fn().mockResolvedValue({
   outputDir: '/tmp/out',
 });
 
-vi.mock('claude-code-manager', () => {
+vi.mock('claude-task-runner', () => {
   return {
     ClaudeCodeManager: class {
       execute = mockExecute;
@@ -26,7 +26,7 @@ describe('ProcessExecutor', () => {
     executor = new ProcessExecutor();
   });
 
-  it('returns a successful result from claude-code-manager', async () => {
+  it('returns a successful result from claude-task-runner', async () => {
     const result = await executor.execute({
       taskId: 'task-1',
       prompt: 'Say hello',
