@@ -1,7 +1,21 @@
+import { BrowserRouter, Routes, Route } from 'react-router-dom';
+import { Layout } from './components/layout/Layout';
+import { TasksPage } from './pages/TasksPage';
+import { TaskDetailPage } from './pages/TaskDetailPage';
+import { ProfilesPage } from './pages/ProfilesPage';
+import { HealthPage } from './pages/HealthPage';
+
 export function App() {
   return (
-    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
-      <h1 className="text-2xl font-bold text-gray-900">Claude Swarm Dashboard</h1>
-    </div>
+    <BrowserRouter>
+      <Routes>
+        <Route element={<Layout />}>
+          <Route path="/app" element={<TasksPage />} />
+          <Route path="/app/tasks/:id" element={<TaskDetailPage />} />
+          <Route path="/app/profiles" element={<ProfilesPage />} />
+          <Route path="/app/health" element={<HealthPage />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
   );
 }
