@@ -1,0 +1,20 @@
+version: '3.8'
+
+services:
+  swarm:
+    build: .
+    ports:
+      - "3000:3000"
+    volumes:
+      - ./data:/app/data
+    environment:
+      - PORT=3000
+      - MAX_CONCURRENCY=3
+      - DATA_DIR=/app/data
+      - LOG_LEVEL=info
+    restart: unless-stopped
+
+  runner:
+    build: ./docker/runner
+    profiles:
+      - build-only
