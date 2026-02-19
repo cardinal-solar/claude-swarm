@@ -14,6 +14,12 @@ export interface TaskRecord {
   tags?: Record<string, string>;
 }
 
+export interface CreateTaskInput {
+  prompt: string;
+  apiKey: string;
+  mode: 'process' | 'container' | 'sdk';
+}
+
 export interface McpProfile {
   id: string;
   name: string;
@@ -68,6 +74,12 @@ export const api = {
     cancel: (id: string) => fetchJson<{ ok: boolean }>(`/tasks/${encodeURIComponent(id)}`, { method: 'DELETE' }),
     artifacts: (id: string) => fetchJson<Artifact[]>(`/tasks/${encodeURIComponent(id)}/artifacts`),
     artifactUrl: (id: string, path: string) => `${BASE}/tasks/${encodeURIComponent(id)}/artifacts/${path}`,
+    create: (data: CreateTaskInput) =>
+      fetchJson<TaskRecord>('/tasks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      }),
   },
   profiles: {
     list: () => fetchJson<McpProfile[]>('/mcp-profiles'),
