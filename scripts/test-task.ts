@@ -27,8 +27,9 @@ async function main() {
   console.log('  OK:', health);
 
   // 2. Crea un task di prova
+  const promptArg = process.argv[2];
   const payload = {
-    prompt: 'Rispondi con una sola frase: qual è il senso della vita?',
+    prompt: promptArg || 'Rispondi con una sola frase: qual è il senso della vita?',
     apiKey: API_KEY,
     mode: 'process' as const,
     tags: { source: 'test-script' },
@@ -53,7 +54,7 @@ async function main() {
   // 3. Polling fino a completamento
   console.log('\n→ Attendo completamento ...');
   const POLL_INTERVAL = 2000;
-  const MAX_WAIT = 5 * 60 * 1000; // 5 minuti
+  const MAX_WAIT = 15 * 60 * 1000; // 15 minuti
   const start = Date.now();
 
   let current = task;
@@ -82,7 +83,20 @@ async function main() {
     console.error('  Errore:', current.error);
   }
 
-  // 5. Lista task con tag 'test-script'
+  // 5. Controlla artifacts
+  console.log('\n→ Controllo artifacts ...');
+  const artifacts = await fetch(`${BASE_URL}/api/tasks/${task.id}/artifacts`).then((r) => r.json());
+  if (artifacts.length > 0) {
+    console.log(`  Trovati ${artifacts.length} artifact(s):`);
+    for (const a of artifacts) {
+      console.log(`    - ${a.name} (${a.size} bytes)`);
+      console.log(`      Download: ${BASE_URL}/api/tasks/${task.id}/artifacts/${a.path}`);
+    }
+  } else {
+    console.log('  Nessun artifact trovato nel workspace.');
+  }
+
+  // 6. Lista task con tag 'test-script'
   console.log('\n→ Lista task recenti ...');
   const tasks = await fetch(`${BASE_URL}/api/tasks`).then((r) => r.json());
   const testTasks = tasks.filter((t: any) => t.tags?.source === 'test-script');

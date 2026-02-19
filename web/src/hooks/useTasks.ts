@@ -11,3 +11,8 @@ export function useTask(id: string) {
   const fetcher = useCallback(() => api.tasks.get(id), [id]);
   return usePolling(fetcher, 3000);
 }
+
+export function useArtifacts(id: string) {
+  const fetcher = useCallback(() => api.tasks.artifacts(id), [id]);
+  return usePolling(fetcher, 10000);
+}

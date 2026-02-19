@@ -108,6 +108,25 @@ export class TaskService {
     return this.deps.taskStore.list(filter);
   }
 
+  async listArtifacts(id: string): Promise<{ name: string; path: string; size: number }[]> {
+    const task = this.deps.taskStore.getById(id);
+    if (!task) throw new TaskNotFoundError(id);
+    if (!task.workspacePath) return [];
+    const relativePaths = await this.deps.workspaceManager.collectArtifacts(task.workspacePath);
+    const { stat } = await import('fs/promises');
+    const { join } = await import('path');
+    const results = [];
+    for (const relPath of relativePaths) {
+      try {
+        const s = await stat(join(task.workspacePath, relPath));
+        results.push({ name: relPath, path: relPath, size: s.size });
+      } catch {
+        results.push({ name: relPath, path: relPath, size: 0 });
+      }
+    }
+    return results;
+  }
+
   async cancelTask(id: string): Promise<void> {
     const task = this.deps.taskStore.getById(id);
     if (!task) throw new TaskNotFoundError(id);

@@ -38,7 +38,9 @@ export class ProcessExecutor implements Executor {
         args.push('--json-schema', JSON.stringify(params.schema));
       }
 
-      args.push(params.prompt);
+      // Wrap user prompt with system instruction to save outputs in the workspace
+      const wrappedPrompt = `IMPORTANT: Your working directory is the task workspace. When creating or saving any output files, save them in the current working directory (.) unless the user explicitly specifies an absolute path. This ensures artifacts are collected properly.\n\n${params.prompt}`;
+      args.push(wrappedPrompt);
 
       const env: Record<string, string> = { ...process.env as Record<string, string> };
       env.ANTHROPIC_API_KEY = params.apiKey;
@@ -91,13 +93,14 @@ export class ProcessExecutor implements Executor {
         }
 
         if (code !== 0) {
-          taskLog.error({ code, stderr: stderr.slice(0, 500) }, 'Claude process failed');
+          const errorMessage = stderr.slice(0, 1000) || stdout.slice(0, 1000) || `Exit code ${code}`;
+          taskLog.error({ code, stderr: stderr.slice(0, 500), stdout: stdout.slice(0, 500) }, 'Claude process failed');
           resolve({
             success: false,
             logs: stderr || stdout,
             artifacts: [],
             duration,
-            error: { code: 'PROCESS_ERROR', message: stderr.slice(0, 1000) || `Exit code ${code}` },
+            error: { code: 'PROCESS_ERROR', message: errorMessage },
           });
           return;
         }

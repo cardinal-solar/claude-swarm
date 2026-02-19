@@ -21,6 +21,12 @@ export interface McpProfile {
   createdAt: string;
 }
 
+export interface Artifact {
+  name: string;
+  path: string;
+  size: number;
+}
+
 export interface HealthResponse {
   status: 'ok';
   scheduler: { running: number; queued: number; maxConcurrency: number };
@@ -44,6 +50,8 @@ export const api = {
     },
     get: (id: string) => fetchJson<TaskRecord>(`/tasks/${encodeURIComponent(id)}`),
     cancel: (id: string) => fetchJson<{ ok: boolean }>(`/tasks/${encodeURIComponent(id)}`, { method: 'DELETE' }),
+    artifacts: (id: string) => fetchJson<Artifact[]>(`/tasks/${encodeURIComponent(id)}/artifacts`),
+    artifactUrl: (id: string, path: string) => `${BASE}/tasks/${encodeURIComponent(id)}/artifacts/${path}`,
   },
   profiles: {
     list: () => fetchJson<McpProfile[]>('/mcp-profiles'),

@@ -1,10 +1,23 @@
 import { useParams, Link } from 'react-router-dom';
-import { useTask } from '@/hooks/useTasks';
+import { useTask, useArtifacts } from '@/hooks/useTasks';
+import { api } from '@/lib/api-client';
 import { StatusBadge } from '@/components/tasks/StatusBadge';
+
+function formatSize(bytes: number): string {
+  if (bytes === 0) return '0 B';
+  const units = ['B', 'KB', 'MB', 'GB'];
+  const i = Math.floor(Math.log(bytes) / Math.log(1024));
+  return `${(bytes / Math.pow(1024, i)).toFixed(i === 0 ? 0 : 1)} ${units[i]}`;
+}
+
+function fileExt(name: string): string {
+  return name.split('.').pop()?.toLowerCase() || '';
+}
 
 export function TaskDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: task, loading, error } = useTask(id!);
+  const { data: artifacts } = useArtifacts(id!);
 
   if (loading && !task) return <div className="text-sm text-gray-500">Loading...</div>;
   if (error) return <div className="text-sm text-red-600">{error}</div>;
@@ -82,6 +95,33 @@ export function TaskDetailPage() {
         <div className="bg-red-50 rounded-lg border border-red-200 p-5 space-y-2">
           <h3 className="text-sm font-medium text-red-700 uppercase">Error: {task.error.code}</h3>
           <p className="text-sm text-red-600">{task.error.message}</p>
+        </div>
+      )}
+
+      {/* Artifacts */}
+      {artifacts && artifacts.length > 0 && (
+        <div className="bg-white rounded-lg border border-gray-200 p-5 space-y-3">
+          <h3 className="text-sm font-medium text-gray-500 uppercase">Artifacts ({artifacts.length})</h3>
+          <ul className="divide-y divide-gray-100">
+            {artifacts.map((a) => (
+              <li key={a.path} className="flex items-center justify-between py-2">
+                <div className="flex items-center gap-2 min-w-0">
+                  <span className="text-[10px] font-bold uppercase bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">
+                    {fileExt(a.name) || 'file'}
+                  </span>
+                  <span className="text-sm text-gray-900 truncate">{a.name}</span>
+                  <span className="text-xs text-gray-400">{formatSize(a.size)}</span>
+                </div>
+                <a
+                  href={api.tasks.artifactUrl(task.id, a.path)}
+                  download
+                  className="text-sm text-blue-600 hover:text-blue-800 font-medium shrink-0 ml-4"
+                >
+                  Download
+                </a>
+              </li>
+            ))}
+          </ul>
         </div>
       )}
     </div>
