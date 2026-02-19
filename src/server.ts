@@ -38,13 +38,6 @@ export function createApp(opts: AppOptions) {
   const scheduler = new Scheduler({ maxConcurrency: opts.maxConcurrency });
   const workspaceManager = new WorkspaceManager(opts.workspacesDir);
 
-  const taskService = new TaskService({
-    taskStore, scheduler, workspaceManager, mcpProfileStore,
-    defaultMode: opts.defaultMode, defaultTimeout: opts.defaultTimeout,
-  });
-  const mcpProfileService = new McpProfileService(mcpProfileStore);
-  const healthService = new HealthService(scheduler);
-
   const knowledgeStore = new KnowledgeStore(opts.db);
   const knowledgeManager = new KnowledgeManager(opts.knowledgeDir);
   const knowledgeService = new KnowledgeService({
@@ -52,6 +45,15 @@ export function createApp(opts: AppOptions) {
     manager: knowledgeManager,
     maxContext: opts.knowledgeMaxContext,
   });
+
+  const taskService = new TaskService({
+    taskStore, scheduler, workspaceManager, mcpProfileStore,
+    knowledgeService,
+    knowledgeAutoLearn: opts.knowledgeAutoLearn ?? true,
+    defaultMode: opts.defaultMode, defaultTimeout: opts.defaultTimeout,
+  });
+  const mcpProfileService = new McpProfileService(mcpProfileStore);
+  const healthService = new HealthService(scheduler);
 
   const api = new Hono();
   api.route('/tasks', taskRoutes(taskService));

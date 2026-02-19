@@ -5,6 +5,7 @@ import { WorkspaceManager } from '../workspace/workspace-manager';
 import { ProcessExecutor } from '../executors/process.executor';
 import { ContainerExecutor } from '../executors/container.executor';
 import { TaskNotFoundError } from '../shared/errors';
+import { KnowledgeService } from './knowledge.service';
 import type { TaskRecord, TaskStatus, ExecutionMode, McpServerConfig } from '../shared/types';
 import type { CreateTaskInput } from '../api/schemas/task.schema';
 
@@ -13,6 +14,8 @@ interface TaskServiceDeps {
   scheduler: Scheduler;
   workspaceManager: WorkspaceManager;
   mcpProfileStore?: McpProfileStore;
+  knowledgeService?: KnowledgeService;
+  knowledgeAutoLearn?: boolean;
   defaultMode: ExecutionMode;
   defaultTimeout: number;
 }
@@ -57,6 +60,20 @@ export class TaskService {
       await this.deps.workspaceManager.writeMcpConfig(workspace.path, mcpServers);
     }
 
+    // Build knowledge context
+    let knowledgeContext = '';
+    if (this.deps.knowledgeService) {
+      knowledgeContext = await this.deps.knowledgeService.buildContext(input.prompt);
+    }
+
+    // Knowledge learning instructions
+    const knowledgeLearningInstructions = (this.deps.knowledgeAutoLearn !== false && this.deps.knowledgeService)
+      ? `\n\nAFTER completing the task above, create a knowledge entry by saving these files in a .knowledge/ directory:\n- .knowledge/skill.yaml with fields: id (slug), title, description, tags (array), category\n- .knowledge/prompt.md with a reusable prompt template for this type of task\n- .knowledge/README.md with a human-readable guide\nCopy any reusable scripts to .knowledge/code/`
+      : '';
+
+    // Wrap prompt with knowledge context and learning instructions
+    const wrappedPrompt = `${knowledgeContext ? knowledgeContext + '\n\n---\n\n' : ''}${input.prompt}${knowledgeLearningInstructions}`;
+
     // Create task record
     const id = this.deps.taskStore.create({
       prompt: input.prompt,
@@ -76,7 +93,7 @@ export class TaskService {
       taskId: id,
       params: {
         taskId: id,
-        prompt: input.prompt,
+        prompt: wrappedPrompt,
         apiKey: input.apiKey,
         workspacePath: workspace.path,
         schema: input.schema,
@@ -85,9 +102,17 @@ export class TaskService {
         permissionMode: input.permissionMode,
       },
       executor,
-      onComplete: (taskId, result) => {
+      onComplete: async (taskId, result) => {
         if (result.success) {
           this.deps.taskStore.complete(taskId, { data: result.data, valid: result.valid ?? true }, result.duration);
+          // Auto-learn from workspace
+          if (this.deps.knowledgeService && this.deps.knowledgeAutoLearn !== false) {
+            try {
+              await this.deps.knowledgeService.learnFromWorkspace(workspace.path, taskId);
+            } catch {
+              // Don't fail the task if learning fails - just ignore
+            }
+          }
         } else {
           this.deps.taskStore.fail(taskId, result.error || { code: 'UNKNOWN', message: 'Unknown error' }, result.duration);
         }
