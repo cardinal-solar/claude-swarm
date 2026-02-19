@@ -27,6 +27,24 @@ export function initializeDatabase(sqlite: Database.Database): void {
 
     CREATE INDEX IF NOT EXISTS idx_tasks_status ON tasks(status);
     CREATE INDEX IF NOT EXISTS idx_tasks_created_at ON tasks(created_at);
+
+    CREATE TABLE IF NOT EXISTS knowledge_entries (
+      id TEXT PRIMARY KEY,
+      title TEXT NOT NULL,
+      description TEXT NOT NULL,
+      tags_json TEXT,
+      category TEXT,
+      status TEXT NOT NULL DEFAULT 'active',
+      avg_rating INTEGER NOT NULL DEFAULT 0,
+      vote_count INTEGER NOT NULL DEFAULT 0,
+      source TEXT NOT NULL DEFAULT 'auto',
+      origin_task_id TEXT,
+      folder_path TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    );
+    CREATE INDEX IF NOT EXISTS idx_knowledge_status ON knowledge_entries(status);
+    CREATE INDEX IF NOT EXISTS idx_knowledge_rating ON knowledge_entries(avg_rating);
   `);
 }
 
