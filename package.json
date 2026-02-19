@@ -1,5 +1,5 @@
 {
-  "name": "claude-ops",
+  "name": "claude-code-ops",
   "version": "0.1.0",
   "description": "Claude-Code-as-a-Service platform — run Claude Code instances via API, CLI, or containers",
   "main": "dist/src/index.js",
