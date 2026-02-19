@@ -1,5 +1,5 @@
 {
-  "name": "claude-swarm",
+  "name": "claude-ops",
   "version": "0.1.0",
   "description": "Claude-Code-as-a-Service platform — run Claude Code instances via API, CLI, or containers",
   "main": "dist/src/index.js",
@@ -17,7 +17,7 @@
     }
   },
   "bin": {
-    "claude-swarm": "./dist/cli/index.js"
+    "claude-ops": "./dist/cli/index.js"
   },
   "files": [
     "dist",
@@ -47,7 +47,7 @@
     "llm",
     "task-runner",
     "code-generation",
-    "swarm",
+    "claude-ops",
     "claude-as-a-service"
   ],
   "author": "Federico Costa",

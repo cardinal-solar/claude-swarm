@@ -1,2 +1,2 @@
-export { ClaudeSwarm, ClaudeSwarmError } from './client';
-export type { ClaudeSwarmOptions } from './client';
+export { ClaudeOps, ClaudeOpsError } from './client';
+export type { ClaudeOpsOptions } from './client';

@@ -10,7 +10,7 @@ export function Sidebar() {
   return (
     <aside className="w-56 bg-gray-900 text-gray-300 min-h-screen flex flex-col">
       <div className="px-4 py-5 border-b border-gray-800">
-        <h1 className="text-lg font-bold text-white tracking-tight">Claude Swarm</h1>
+        <h1 className="text-lg font-bold text-white tracking-tight">Claude Ops</h1>
         <p className="text-xs text-gray-500 mt-0.5">Dashboard</p>
       </div>
       <nav className="flex-1 px-2 py-4 space-y-1">

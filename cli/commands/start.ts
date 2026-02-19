@@ -2,7 +2,7 @@ import { Command } from 'commander';
 
 export function startCommand() {
   return new Command('start')
-    .description('Start the claude-swarm server')
+    .description('Start the claude-ops server')
     .option('-p, --port <number>', 'Port to listen on', '3000')
     .option('-H, --host <string>', 'Host to bind to', '0.0.0.0')
     .option('--max-concurrency <number>', 'Max concurrent tasks', '5')

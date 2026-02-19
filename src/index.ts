@@ -37,5 +37,5 @@ serve({
   port: config.port,
   hostname: config.host,
 }, (info) => {
-  logger.info(`claude-swarm listening on http://${config.host}:${info.port}`);
+  logger.info(`claude-ops listening on http://${config.host}:${info.port}`);
 });

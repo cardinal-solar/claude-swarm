@@ -1,17 +1,17 @@
 import type { TaskRecord, McpProfile } from '../src/shared/types';
 
-export interface ClaudeSwarmOptions { baseUrl: string; }
+export interface ClaudeOpsOptions { baseUrl: string; }
 
-export class ClaudeSwarmError extends Error {
+export class ClaudeOpsError extends Error {
   constructor(public readonly status: number, public readonly error: { code: string; message: string }) {
     super(`${error.code}: ${error.message}`);
-    this.name = 'ClaudeSwarmError';
+    this.name = 'ClaudeOpsError';
   }
 }
 
-export class ClaudeSwarm {
+export class ClaudeOps {
   private baseUrl: string;
-  constructor(opts: ClaudeSwarmOptions) { this.baseUrl = opts.baseUrl.replace(/\/$/, ''); }
+  constructor(opts: ClaudeOpsOptions) { this.baseUrl = opts.baseUrl.replace(/\/$/, ''); }
 
   async createTask(input: { prompt: string; apiKey: string; [key: string]: unknown }): Promise<TaskRecord> {
     return this.post('/api/tasks', input);
@@ -49,7 +49,7 @@ export class ClaudeSwarm {
     const res = await fetch(`${this.baseUrl}${path}`);
     if (!res.ok) {
       const body = await res.json() as { error?: { code: string; message: string } };
-      throw new ClaudeSwarmError(res.status, body.error || { code: 'UNKNOWN', message: 'Request failed' });
+      throw new ClaudeOpsError(res.status, body.error || { code: 'UNKNOWN', message: 'Request failed' });
     }
     return res.json() as Promise<T>;
   }
@@ -60,7 +60,7 @@ export class ClaudeSwarm {
     });
     if (!res.ok) {
       const rb = await res.json() as { error?: { code: string; message: string } };
-      throw new ClaudeSwarmError(res.status, rb.error || { code: 'UNKNOWN', message: 'Request failed' });
+      throw new ClaudeOpsError(res.status, rb.error || { code: 'UNKNOWN', message: 'Request failed' });
     }
     return res.json() as Promise<T>;
   }
@@ -69,7 +69,7 @@ export class ClaudeSwarm {
     const res = await fetch(`${this.baseUrl}${path}`, { method: 'DELETE' });
     if (!res.ok) {
       const body = await res.json() as { error?: { code: string; message: string } };
-      throw new ClaudeSwarmError(res.status, body.error || { code: 'UNKNOWN', message: 'Request failed' });
+      throw new ClaudeOpsError(res.status, body.error || { code: 'UNKNOWN', message: 'Request failed' });
     }
   }
 }

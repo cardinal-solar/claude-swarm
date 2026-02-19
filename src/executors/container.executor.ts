@@ -4,7 +4,7 @@ import * as path from 'path';
 import type { Executor, ExecuteParams } from './executor.interface';
 import type { ExecutorResult } from '../shared/types';
 
-const RUNNER_IMAGE = 'claude-swarm-runner:latest';
+const RUNNER_IMAGE = 'claude-ops-runner:latest';
 
 export class ContainerExecutor implements Executor {
   private docker: Docker;

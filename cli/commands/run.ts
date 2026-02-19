@@ -2,7 +2,7 @@ import { Command } from 'commander';
 
 export function runCommand() {
   return new Command('run')
-    .description('Submit a task to claude-swarm')
+    .description('Submit a task to claude-ops')
     .requiredOption('-p, --prompt <prompt>', 'The prompt for Claude')
     .requiredOption('-k, --api-key <key>', 'Anthropic API key')
     .option('-s, --server <url>', 'Server URL', 'http://localhost:3000')
