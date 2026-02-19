@@ -22,6 +22,8 @@ const MIME_TYPES: Record<string, string> = {
   '.js': 'text/plain',
   '.yaml': 'text/yaml',
   '.yml': 'text/yaml',
+  '.py': 'text/x-python',
+  '.sh': 'text/x-shellscript',
 };
 
 export function knowledgeRoutes(knowledgeService: KnowledgeService) {
@@ -134,11 +136,11 @@ export function knowledgeRoutes(knowledgeService: KnowledgeService) {
       return c.json({ error: { code: 'MISSING_PATH', message: 'Artifact path required' } }, 400);
     }
 
-    const artifactsDir = path.join(entry.folderPath, 'artifacts');
-    const fullPath = path.resolve(artifactsDir, artifactPath);
+    const entryDir = entry.folderPath;
+    const fullPath = path.resolve(entryDir, artifactPath);
 
     // Prevent directory traversal
-    if (!fullPath.startsWith(path.resolve(artifactsDir))) {
+    if (!fullPath.startsWith(path.resolve(entryDir))) {
       return c.json({ error: { code: 'FORBIDDEN', message: 'Path traversal not allowed' } }, 403);
     }
 

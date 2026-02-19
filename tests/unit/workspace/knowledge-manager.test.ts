@@ -184,8 +184,18 @@ describe('KnowledgeManager', () => {
     await fs.writeFile(path.join(artifactsDir, 'config.json'), '{}');
 
     const artifacts = await manager.listArtifacts('with-artifacts');
-    expect(artifacts).toHaveLength(2);
-    expect(artifacts).toContain('template.hbs');
-    expect(artifacts).toContain('config.json');
+    // 3 files: prompt.md + artifacts/template.hbs + artifacts/config.json (skill.yaml is excluded)
+    expect(artifacts).toHaveLength(3);
+    const names = artifacts.map((a) => a.name);
+    expect(names).toContain('prompt.md');
+    expect(names).toContain('artifacts/template.hbs');
+    expect(names).toContain('artifacts/config.json');
+    // Verify structure
+    for (const a of artifacts) {
+      expect(a).toHaveProperty('name');
+      expect(a).toHaveProperty('path');
+      expect(a).toHaveProperty('size');
+      expect(a.size).toBeGreaterThan(0);
+    }
   });
 });

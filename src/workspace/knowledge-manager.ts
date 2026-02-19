@@ -144,14 +144,37 @@ export class KnowledgeManager {
     }
   }
 
-  async listArtifacts(id: string): Promise<string[]> {
-    const artifactsDir = path.join(this.baseDir, id, 'artifacts');
-    try {
-      const entries = await fs.readdir(artifactsDir);
-      return entries;
-    } catch {
-      return [];
-    }
+  async listArtifacts(id: string): Promise<{ name: string; path: string; size: number }[]> {
+    const entryDir = path.join(this.baseDir, id);
+    const results: { name: string; path: string; size: number }[] = [];
+    const ignore = new Set(['skill.yaml']);
+
+    const walk = async (dir: string, rel: string): Promise<void> => {
+      let entries: import('fs').Dirent[];
+      try {
+        entries = await fs.readdir(dir, { withFileTypes: true });
+      } catch {
+        return;
+      }
+      for (const entry of entries) {
+        if (ignore.has(entry.name)) continue;
+        const fullPath = path.join(dir, entry.name);
+        const relPath = rel ? path.join(rel, entry.name) : entry.name;
+        if (entry.isDirectory()) {
+          await walk(fullPath, relPath);
+        } else {
+          try {
+            const stat = await fs.stat(fullPath);
+            results.push({ name: relPath, path: relPath, size: stat.size });
+          } catch {
+            results.push({ name: relPath, path: relPath, size: 0 });
+          }
+        }
+      }
+    };
+
+    await walk(entryDir, '');
+    return results;
   }
 
   async readPrompt(id: string): Promise<string | null> {

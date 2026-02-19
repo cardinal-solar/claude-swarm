@@ -273,9 +273,9 @@ export class KnowledgeService {
   }
 
   /**
-   * Lists artifacts for a knowledge entry.
+   * Lists artifacts for a knowledge entry (all files except skill.yaml).
    */
-  async listArtifacts(id: string): Promise<string[]> {
+  async listArtifacts(id: string): Promise<{ name: string; path: string; size: number }[]> {
     return this.deps.manager.listArtifacts(id);
   }
 

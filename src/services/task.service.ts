@@ -1,5 +1,6 @@
 import { TaskStore } from '../storage/task.store';
 import { McpProfileStore } from '../storage/mcp-profile.store';
+import { TaskLogStore } from '../storage/task-log.store';
 import { Scheduler } from '../scheduler/scheduler';
 import { WorkspaceManager } from '../workspace/workspace-manager';
 import { ProcessExecutor } from '../executors/process.executor';
@@ -16,6 +17,7 @@ interface TaskServiceDeps {
   mcpProfileStore?: McpProfileStore;
   knowledgeService?: KnowledgeService;
   knowledgeAutoLearn?: boolean;
+  taskLogStore: TaskLogStore;
   defaultMode: ExecutionMode;
   defaultTimeout: number;
 }
@@ -100,21 +102,25 @@ export class TaskService {
         timeout,
         model: input.model,
         permissionMode: input.permissionMode,
+        onOutput: (chunk) => {
+          this.deps.taskLogStore.append(id, chunk);
+        },
       },
       executor,
       onComplete: async (taskId, result) => {
         if (result.success) {
           this.deps.taskStore.complete(taskId, { data: result.data, valid: result.valid ?? true }, result.duration);
-          // Auto-learn from workspace
-          if (this.deps.knowledgeService && this.deps.knowledgeAutoLearn !== false) {
-            try {
-              await this.deps.knowledgeService.learnFromWorkspace(workspace.path, taskId);
-            } catch {
-              // Don't fail the task if learning fails - just ignore
-            }
-          }
         } else {
           this.deps.taskStore.fail(taskId, result.error || { code: 'UNKNOWN', message: 'Unknown error' }, result.duration);
+        }
+        // Auto-learn from workspace regardless of success/failure.
+        // A timed-out task may still have produced valid .knowledge/ files.
+        if (this.deps.knowledgeService && this.deps.knowledgeAutoLearn !== false) {
+          try {
+            await this.deps.knowledgeService.learnFromWorkspace(workspace.path, taskId);
+          } catch {
+            // Don't fail the task if learning fails - just ignore
+          }
         }
       },
     });
@@ -157,5 +163,17 @@ export class TaskService {
     if (!task) throw new TaskNotFoundError(id);
     await this.deps.scheduler.cancel(id);
     this.deps.taskStore.updateStatus(id, 'cancelled');
+  }
+
+  /** Get accumulated logs for a task. */
+  getTaskLogs(id: string): string {
+    this.getTask(id); // throws if not found
+    return this.deps.taskLogStore.get(id);
+  }
+
+  /** Subscribe to live log chunks (for SSE streaming). Returns unsubscribe function. */
+  subscribeTaskLogs(id: string, listener: (chunk: string) => void): () => void {
+    this.getTask(id); // throws if not found
+    return this.deps.taskLogStore.subscribe(id, listener);
   }
 }

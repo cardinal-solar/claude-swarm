@@ -6,6 +6,7 @@ import { TaskStore } from '../../../src/storage/task.store';
 import { Scheduler } from '../../../src/scheduler/scheduler';
 import { WorkspaceManager } from '../../../src/workspace/workspace-manager';
 import { KnowledgeService } from '../../../src/services/knowledge.service';
+import { TaskLogStore } from '../../../src/storage/task-log.store';
 import { initializeDatabase } from '../../../src/storage/database';
 import * as os from 'os';
 import * as path from 'path';
@@ -45,6 +46,7 @@ describe('TaskService', () => {
       taskStore,
       scheduler,
       workspaceManager: workspace,
+      taskLogStore: new TaskLogStore(),
       defaultMode: 'process',
       defaultTimeout: 300000,
     });
@@ -115,6 +117,7 @@ describe('TaskService - Knowledge Integration', () => {
       workspaceManager,
       knowledgeService: mockKnowledgeService,
       knowledgeAutoLearn: true,
+      taskLogStore: new TaskLogStore(),
       defaultMode: 'process',
       defaultTimeout: 300000,
     });
@@ -153,6 +156,7 @@ describe('TaskService - Knowledge Integration', () => {
       workspaceManager,
       knowledgeService: mockKnowledgeService,
       knowledgeAutoLearn: true,
+      taskLogStore: new TaskLogStore(),
       defaultMode: 'process',
       defaultTimeout: 300000,
     });
@@ -185,6 +189,7 @@ describe('TaskService - Knowledge Integration', () => {
       workspaceManager,
       knowledgeService: mockKnowledgeService,
       knowledgeAutoLearn: false,
+      taskLogStore: new TaskLogStore(),
       defaultMode: 'process',
       defaultTimeout: 300000,
     });
@@ -207,6 +212,7 @@ describe('TaskService - Knowledge Integration', () => {
       taskStore,
       scheduler,
       workspaceManager,
+      taskLogStore: new TaskLogStore(),
       defaultMode: 'process',
       defaultTimeout: 300000,
     });
@@ -243,6 +249,7 @@ describe('TaskService - Knowledge Integration', () => {
       workspaceManager,
       knowledgeService: mockKnowledgeService,
       knowledgeAutoLearn: true,
+      taskLogStore: new TaskLogStore(),
       defaultMode: 'process',
       defaultTimeout: 300000,
     });
@@ -284,6 +291,7 @@ describe('TaskService - Knowledge Integration', () => {
       workspaceManager,
       knowledgeService: mockKnowledgeService,
       knowledgeAutoLearn: true,
+      taskLogStore: new TaskLogStore(),
       defaultMode: 'process',
       defaultTimeout: 300000,
     });
@@ -296,7 +304,8 @@ describe('TaskService - Knowledge Integration', () => {
     // Wait for the executor to resolve and onComplete to fire
     await new Promise((resolve) => setTimeout(resolve, 50));
 
-    expect(mockKnowledgeService.learnFromWorkspace).not.toHaveBeenCalled();
+    // Knowledge learning now runs even on failed tasks (timed-out tasks may have produced .knowledge/)
+    expect(mockKnowledgeService.learnFromWorkspace).toHaveBeenCalledTimes(1);
   });
 
   it('does not fail the task if learnFromWorkspace throws', async () => {
@@ -321,6 +330,7 @@ describe('TaskService - Knowledge Integration', () => {
       workspaceManager,
       knowledgeService: mockKnowledgeService,
       knowledgeAutoLearn: true,
+      taskLogStore: new TaskLogStore(),
       defaultMode: 'process',
       defaultTimeout: 300000,
     });
@@ -362,6 +372,7 @@ describe('TaskService - Knowledge Integration', () => {
       workspaceManager,
       knowledgeService: mockKnowledgeService,
       knowledgeAutoLearn: false,
+      taskLogStore: new TaskLogStore(),
       defaultMode: 'process',
       defaultTimeout: 300000,
     });

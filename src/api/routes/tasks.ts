@@ -21,6 +21,8 @@ const MIME_TYPES: Record<string, string> = {
   '.html': 'text/html',
   '.ts': 'text/plain',
   '.js': 'text/plain',
+  '.py': 'text/x-python',
+  '.sh': 'text/x-shellscript',
 };
 
 export function taskRoutes(taskService: TaskService) {
@@ -113,6 +115,69 @@ export function taskRoutes(taskService: TaskService) {
       } catch {
         return c.json({ error: { code: 'NOT_FOUND', message: `Artifact not found: ${artifactPath}` } }, 404);
       }
+    } catch (err) {
+      if (err instanceof TaskNotFoundError) {
+        return c.json({ error: { code: err.code, message: err.message } }, 404);
+      }
+      throw err;
+    }
+  });
+
+  // Get task logs - supports SSE streaming for running tasks
+  router.get('/:id/logs', async (c) => {
+    try {
+      const task = taskService.getTask(c.req.param('id'));
+      const accept = c.req.header('accept') || '';
+
+      // SSE streaming mode: stream live logs for running tasks
+      if (accept.includes('text/event-stream') && (task.status === 'running' || task.status === 'queued')) {
+        return stream(c, async (s) => {
+          c.header('Content-Type', 'text/event-stream');
+          c.header('Cache-Control', 'no-cache');
+          c.header('Connection', 'keep-alive');
+
+          // Send existing logs first
+          const existing = taskService.getTaskLogs(task.id);
+          if (existing) {
+            await s.write(`data: ${JSON.stringify({ type: 'log', content: existing })}\n\n`);
+          }
+
+          // Stream new chunks
+          const unsubscribe = taskService.subscribeTaskLogs(task.id, async (chunk) => {
+            try {
+              await s.write(`data: ${JSON.stringify({ type: 'log', content: chunk })}\n\n`);
+            } catch {
+              unsubscribe();
+            }
+          });
+
+          // Poll for task completion to close the stream
+          const pollInterval = setInterval(async () => {
+            try {
+              const current = taskService.getTask(task.id);
+              if (current.status !== 'running' && current.status !== 'queued') {
+                await s.write(`data: ${JSON.stringify({ type: 'done', status: current.status })}\n\n`);
+                unsubscribe();
+                clearInterval(pollInterval);
+                await s.close();
+              }
+            } catch {
+              unsubscribe();
+              clearInterval(pollInterval);
+            }
+          }, 2000);
+
+          // Cleanup on client disconnect
+          s.onAbort(() => {
+            unsubscribe();
+            clearInterval(pollInterval);
+          });
+        });
+      }
+
+      // One-shot mode: return all accumulated logs
+      const logs = taskService.getTaskLogs(task.id);
+      return c.json({ taskId: task.id, status: task.status, logs });
     } catch (err) {
       if (err instanceof TaskNotFoundError) {
         return c.json({ error: { code: err.code, message: err.message } }, 404);

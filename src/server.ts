@@ -4,6 +4,7 @@ import { serveStatic } from '@hono/node-server/serve-static';
 import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { TaskStore } from './storage/task.store';
 import { McpProfileStore } from './storage/mcp-profile.store';
+import { TaskLogStore } from './storage/task-log.store';
 import { Scheduler } from './scheduler/scheduler';
 import { WorkspaceManager } from './workspace/workspace-manager';
 import { TaskService } from './services/task.service';
@@ -35,6 +36,7 @@ export function createApp(opts: AppOptions) {
   const app = new Hono();
   const taskStore = new TaskStore(opts.db);
   const mcpProfileStore = new McpProfileStore(opts.db);
+  const taskLogStore = new TaskLogStore();
   const scheduler = new Scheduler({ maxConcurrency: opts.maxConcurrency });
   const workspaceManager = new WorkspaceManager(opts.workspacesDir);
 
@@ -50,6 +52,7 @@ export function createApp(opts: AppOptions) {
     taskStore, scheduler, workspaceManager, mcpProfileStore,
     knowledgeService,
     knowledgeAutoLearn: opts.knowledgeAutoLearn ?? true,
+    taskLogStore,
     defaultMode: opts.defaultMode, defaultTimeout: opts.defaultTimeout,
   });
   const mcpProfileService = new McpProfileService(mcpProfileStore);
