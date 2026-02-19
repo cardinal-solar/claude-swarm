@@ -53,6 +53,8 @@ describe('Smoke Test: Full Task Lifecycle', () => {
     app = createApp({
       db,
       workspacesDir: baseDir,
+      knowledgeDir: path.join(baseDir, 'knowledge'),
+      knowledgeMaxContext: 20,
       maxConcurrency: 2,
       defaultMode: 'process',
       defaultTimeout: 300000,

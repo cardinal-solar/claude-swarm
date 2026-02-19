@@ -12,11 +12,18 @@ import { HealthService } from './services/health.service';
 import { taskRoutes } from './api/routes/tasks';
 import { mcpProfileRoutes } from './api/routes/mcp-profiles';
 import { healthRoutes } from './api/routes/health';
+import { KnowledgeStore } from './storage/knowledge.store';
+import { KnowledgeManager } from './workspace/knowledge-manager';
+import { KnowledgeService } from './services/knowledge.service';
+import { knowledgeRoutes } from './api/routes/knowledge';
 import type { ExecutionMode } from './shared/types';
 
 interface AppOptions {
   db: BetterSQLite3Database;
   workspacesDir: string;
+  knowledgeDir: string;
+  knowledgeMaxContext: number;
+  knowledgeAutoLearn?: boolean;
   maxConcurrency: number;
   defaultMode: ExecutionMode;
   defaultTimeout: number;
@@ -38,10 +45,19 @@ export function createApp(opts: AppOptions) {
   const mcpProfileService = new McpProfileService(mcpProfileStore);
   const healthService = new HealthService(scheduler);
 
+  const knowledgeStore = new KnowledgeStore(opts.db);
+  const knowledgeManager = new KnowledgeManager(opts.knowledgeDir);
+  const knowledgeService = new KnowledgeService({
+    store: knowledgeStore,
+    manager: knowledgeManager,
+    maxContext: opts.knowledgeMaxContext,
+  });
+
   const api = new Hono();
   api.route('/tasks', taskRoutes(taskService));
   api.route('/mcp-profiles', mcpProfileRoutes(mcpProfileService));
   api.route('/health', healthRoutes(healthService));
+  api.route('/knowledge', knowledgeRoutes(knowledgeService));
   app.route('/api', api);
 
   if (opts.webDistDir) {
