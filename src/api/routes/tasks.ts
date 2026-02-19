@@ -131,15 +131,16 @@ export function taskRoutes(taskService: TaskService) {
 
       // SSE streaming mode: stream live logs for running tasks
       if (accept.includes('text/event-stream') && (task.status === 'running' || task.status === 'queued')) {
-        return stream(c, async (s) => {
-          c.header('Content-Type', 'text/event-stream');
-          c.header('Cache-Control', 'no-cache');
-          c.header('Connection', 'keep-alive');
+        c.header('Content-Type', 'text/event-stream');
+        c.header('Cache-Control', 'no-cache');
+        c.header('Connection', 'keep-alive');
 
-          // Send existing logs first
+        return stream(c, async (s) => {
+
+          // Send existing logs as snapshot (client replaces, not appends)
           const existing = taskService.getTaskLogs(task.id);
           if (existing) {
-            await s.write(`data: ${JSON.stringify({ type: 'log', content: existing })}\n\n`);
+            await s.write(`data: ${JSON.stringify({ type: 'snapshot', content: existing })}\n\n`);
           }
 
           // Stream new chunks

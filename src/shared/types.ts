@@ -1,5 +1,5 @@
 export type TaskStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
-export type ExecutionMode = 'process' | 'container';
+export type ExecutionMode = 'process' | 'container' | 'sdk';
 
 export interface McpServerConfig {
   name: string;
@@ -68,6 +68,7 @@ export interface ExecutorResult {
   logs: string;
   artifacts: string[];
   duration: number;
+  cost?: number;
   error?: {
     code: string;
     message: string;

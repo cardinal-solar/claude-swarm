@@ -23,7 +23,7 @@ export function getConfig(): SwarmConfig {
     host: process.env.HOST || '0.0.0.0',
     maxConcurrency: parseInt(process.env.MAX_CONCURRENCY || '3', 10),
     defaultTimeout: parseInt(process.env.DEFAULT_TIMEOUT || '900000', 10),
-    defaultMode: (process.env.DEFAULT_MODE as ExecutionMode) || 'process',
+    defaultMode: (process.env.DEFAULT_MODE as ExecutionMode) || 'sdk',
     dataDir,
     dbPath: process.env.DB_PATH || path.join(dataDir, 'swarm.db'),
     workspacesDir: process.env.WORKSPACES_DIR || path.join(dataDir, 'workspaces'),

@@ -72,11 +72,14 @@ describe('KnowledgeService', () => {
 
     const context = await service.buildContext('Write some code');
 
-    expect(context).toContain('Available knowledge entries');
-    expect(context).toContain('[typescript-tips]');
-    expect(context).toContain('[testing-guide]');
+    expect(context).toContain('# Available Knowledge');
+    expect(context).toContain('TypeScript Tips');
+    expect(context).toContain('Testing Guide');
     expect(context).toContain('Useful TypeScript patterns');
     expect(context).toContain('How to write good tests');
+    // Should inline prompt.md content
+    expect(context).toContain('# TS Tips');
+    expect(context).toContain('# Testing');
   });
 
   it('returns empty context when no entries exist', async () => {

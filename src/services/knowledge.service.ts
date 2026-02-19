@@ -88,26 +88,37 @@ export class KnowledgeService {
 
   /**
    * Builds context string for prompt injection from active knowledge entries.
-   * Entries sorted by rating desc, limited to maxContext.
+   * Injects actual prompt.md content inline so the model has the templates available.
+   * Entries sorted by rating desc, limited to maxContext (max 5 to avoid bloating context).
    * Returns empty string if no entries exist.
    */
   async buildContext(prompt: string): Promise<string> {
     const entries = this.deps.store.list({ status: 'active', sortBy: 'rating' });
-    const limited = entries.slice(0, this.deps.maxContext);
+    const limit = Math.min(this.deps.maxContext, 5);
+    const limited = entries.slice(0, limit);
 
     if (limited.length === 0) {
       return '';
     }
 
-    const lines: string[] = ['Available knowledge entries (use if relevant):'];
+    const sections: string[] = ['# Available Knowledge\n'];
     for (let i = 0; i < limited.length; i++) {
       const entry = limited[i];
-      const ratingStr = entry.avgRating > 0 ? ` (★${entry.avgRating})` : '';
-      lines.push(`${i + 1}. [${entry.id}]${ratingStr} - ${entry.description}`);
-      lines.push(`   Folder: ${entry.folderPath}`);
+      const ratingStr = entry.avgRating > 0 ? ` (rating: ${entry.avgRating}/5)` : '';
+      sections.push(`## ${i + 1}. ${entry.title}${ratingStr}`);
+      sections.push(`> ${entry.description}\n`);
+
+      // Try to read the actual prompt.md content
+      const promptContent = await this.deps.manager.readPrompt(entry.id);
+      if (promptContent) {
+        sections.push(promptContent);
+      } else {
+        sections.push(`Folder: ${entry.folderPath}`);
+      }
+      sections.push('');
     }
 
-    return lines.join('\n');
+    return sections.join('\n');
   }
 
   /**

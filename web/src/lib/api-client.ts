@@ -4,7 +4,7 @@ export interface TaskRecord {
   id: string;
   status: 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
   prompt: string;
-  mode: 'process' | 'container';
+  mode: 'process' | 'container' | 'sdk';
   createdAt: string;
   startedAt?: string;
   completedAt?: string;

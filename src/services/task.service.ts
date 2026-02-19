@@ -5,6 +5,7 @@ import { Scheduler } from '../scheduler/scheduler';
 import { WorkspaceManager } from '../workspace/workspace-manager';
 import { ProcessExecutor } from '../executors/process.executor';
 import { ContainerExecutor } from '../executors/container.executor';
+import { SdkExecutor } from '../executors/sdk.executor';
 import { TaskNotFoundError } from '../shared/errors';
 import { KnowledgeService } from './knowledge.service';
 import type { TaskRecord, TaskStatus, ExecutionMode, McpServerConfig } from '../shared/types';
@@ -68,8 +69,8 @@ export class TaskService {
       knowledgeContext = await this.deps.knowledgeService.buildContext(input.prompt);
     }
 
-    // Knowledge learning instructions
-    const knowledgeLearningInstructions = (this.deps.knowledgeAutoLearn !== false && this.deps.knowledgeService)
+    // Knowledge learning instructions (skip when existing knowledge was matched to avoid duplicates)
+    const knowledgeLearningInstructions = (this.deps.knowledgeAutoLearn !== false && this.deps.knowledgeService && !knowledgeContext)
       ? `\n\nAFTER completing the task above, create a knowledge entry by saving these files in a .knowledge/ directory:\n- .knowledge/skill.yaml with fields: id (slug), title, description, tags (array), category\n- .knowledge/prompt.md with a reusable prompt template for this type of task\n- .knowledge/README.md with a human-readable guide\nCopy any reusable scripts to .knowledge/code/`
       : '';
 
@@ -86,9 +87,11 @@ export class TaskService {
     });
 
     // Enqueue for execution
-    const executor = mode === 'container'
-      ? new ContainerExecutor()
-      : new ProcessExecutor();
+    const executor = mode === 'sdk'
+      ? new SdkExecutor()
+      : mode === 'container'
+        ? new ContainerExecutor()
+        : new ProcessExecutor();
     const timeout = input.timeout || this.deps.defaultTimeout;
 
     this.deps.scheduler.enqueue({
@@ -102,6 +105,7 @@ export class TaskService {
         timeout,
         model: input.model,
         permissionMode: input.permissionMode,
+        mcpServers: mcpServers.length > 0 ? mcpServers : undefined,
         onOutput: (chunk) => {
           this.deps.taskLogStore.append(id, chunk);
         },
@@ -113,9 +117,9 @@ export class TaskService {
         } else {
           this.deps.taskStore.fail(taskId, result.error || { code: 'UNKNOWN', message: 'Unknown error' }, result.duration);
         }
-        // Auto-learn from workspace regardless of success/failure.
-        // A timed-out task may still have produced valid .knowledge/ files.
-        if (this.deps.knowledgeService && this.deps.knowledgeAutoLearn !== false) {
+        // Auto-learn from workspace only when no existing knowledge was matched.
+        // When knowledge context was injected, Claude wasn't asked to create .knowledge/ files.
+        if (this.deps.knowledgeService && this.deps.knowledgeAutoLearn !== false && !knowledgeContext) {
           try {
             await this.deps.knowledgeService.learnFromWorkspace(workspace.path, taskId);
           } catch {

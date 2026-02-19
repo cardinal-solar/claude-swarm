@@ -24,6 +24,24 @@ vi.mock('../../src/executors/process.executor', () => {
   };
 });
 
+// Mock the SdkExecutor to avoid needing a real API key
+vi.mock('../../src/executors/sdk.executor', () => {
+  return {
+    SdkExecutor: class MockSdkExecutor {
+      execute = vi.fn().mockResolvedValue({
+        success: true,
+        data: { result: 'ok' },
+        valid: true,
+        logs: '',
+        artifacts: [],
+        duration: 100,
+        cost: 0.01,
+      });
+      cancel = vi.fn();
+    },
+  };
+});
+
 describe('API Integration', () => {
   let app: ReturnType<typeof createApp>;
   let baseDir: string;

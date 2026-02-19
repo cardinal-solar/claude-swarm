@@ -25,6 +25,16 @@ vi.mock('../../../src/executors/process.executor', () => {
   };
 });
 
+// Mock the SdkExecutor similarly
+vi.mock('../../../src/executors/sdk.executor', () => {
+  return {
+    SdkExecutor: class MockSdkExecutor {
+      execute = vi.fn().mockImplementation(() => mockExecuteResult);
+      cancel = vi.fn();
+    },
+  };
+});
+
 describe('TaskService', () => {
   let service: TaskService;
   let taskStore: TaskStore;
@@ -105,7 +115,7 @@ describe('TaskService - Knowledge Integration', () => {
 
   it('injects knowledge context into the prompt when knowledgeService is provided', async () => {
     const mockKnowledgeService = {
-      buildContext: vi.fn().mockResolvedValue('Available knowledge entries (use if relevant):\n1. [test-skill] - A test skill'),
+      buildContext: vi.fn().mockResolvedValue('# Available Knowledge\n\n## 1. Test Skill\n> A test skill\n\n# Test prompt template\n'),
       learnFromWorkspace: vi.fn().mockResolvedValue(null),
     } as unknown as KnowledgeService;
 
@@ -132,14 +142,14 @@ describe('TaskService - Knowledge Integration', () => {
 
     const enqueueArg = enqueueSpy.mock.calls[0][0];
     // The prompt should contain the knowledge context followed by separator
-    expect(enqueueArg.params.prompt).toContain('Available knowledge entries (use if relevant):');
-    expect(enqueueArg.params.prompt).toContain('1. [test-skill] - A test skill');
+    expect(enqueueArg.params.prompt).toContain('# Available Knowledge');
+    expect(enqueueArg.params.prompt).toContain('Test Skill');
     expect(enqueueArg.params.prompt).toContain('---');
     // The original prompt should follow
     expect(enqueueArg.params.prompt).toContain('Build a web app');
-    // Learning instructions should be appended
-    expect(enqueueArg.params.prompt).toContain('AFTER completing the task above');
-    expect(enqueueArg.params.prompt).toContain('.knowledge/skill.yaml');
+    // Learning instructions should NOT be appended when knowledge context was matched
+    expect(enqueueArg.params.prompt).not.toContain('AFTER completing the task above');
+    expect(enqueueArg.params.prompt).not.toContain('.knowledge/skill.yaml');
   });
 
   it('does not inject knowledge context when buildContext returns empty string', async () => {
@@ -348,6 +358,44 @@ describe('TaskService - Knowledge Integration', () => {
     expect(task.status).toBe('completed');
     // learnFromWorkspace was called (it just failed)
     expect(mockKnowledgeService.learnFromWorkspace).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not call learnFromWorkspace when knowledge context was matched', async () => {
+    const mockKnowledgeService = {
+      buildContext: vi.fn().mockResolvedValue('# Available Knowledge\n\n## 1. Test Skill\n> A test skill\n'),
+      learnFromWorkspace: vi.fn().mockResolvedValue(null),
+    } as unknown as KnowledgeService;
+
+    // Make the executor resolve with a success result
+    mockExecuteResult = Promise.resolve({
+      success: true,
+      data: { result: 'done' },
+      valid: true,
+      logs: '',
+      artifacts: [],
+      duration: 100,
+    });
+
+    const service = new TaskService({
+      taskStore,
+      scheduler,
+      workspaceManager,
+      knowledgeService: mockKnowledgeService,
+      knowledgeAutoLearn: true,
+      taskLogStore: new TaskLogStore(),
+      defaultMode: 'process',
+      defaultTimeout: 300000,
+    });
+
+    await service.createTask({
+      prompt: 'Build something',
+      apiKey: 'sk-test',
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    // When knowledge was matched, learnFromWorkspace should NOT be called
+    expect(mockKnowledgeService.learnFromWorkspace).not.toHaveBeenCalled();
   });
 
   it('does not call learnFromWorkspace when knowledgeAutoLearn is false', async () => {

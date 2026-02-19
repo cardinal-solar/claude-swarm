@@ -1,5 +1,7 @@
 import { useParams, Link } from 'react-router-dom';
+import { useRef, useEffect } from 'react';
 import { useTask, useArtifacts } from '@/hooks/useTasks';
+import { useTaskLogs } from '@/hooks/useTaskLogs';
 import { api } from '@/lib/api-client';
 import { StatusBadge } from '@/components/tasks/StatusBadge';
 
@@ -14,10 +16,89 @@ function fileExt(name: string): string {
   return name.split('.').pop()?.toLowerCase() || '';
 }
 
+// --- Log line styling helpers ---
+
+const LOG_STYLES: Record<string, string> = {
+  system: 'text-gray-500',
+  assistant: 'text-gray-200',
+  tool: 'text-blue-400',
+  result: 'text-green-400',
+  error: 'text-red-400',
+};
+
+function LogLine({ line }: { line: string }) {
+  const match = line.match(/^\[(\w+)\]/);
+  const tag = match?.[1] || '';
+  const style = LOG_STYLES[tag] || 'text-gray-400';
+  return <div className={style}>{line}</div>;
+}
+
+function LogsPanel({
+  logs,
+  connected,
+  done,
+  status,
+  logsEndRef,
+}: {
+  logs: string;
+  connected: boolean;
+  done: boolean;
+  status: string;
+  logsEndRef: React.RefObject<HTMLDivElement | null>;
+}) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const isStreaming = status === 'running' || status === 'queued';
+
+  // Auto-scroll to bottom when new logs arrive
+  useEffect(() => {
+    if (containerRef.current) {
+      const el = containerRef.current;
+      // Only auto-scroll if user is near the bottom
+      const isNearBottom = el.scrollHeight - el.scrollTop - el.clientHeight < 100;
+      if (isNearBottom) {
+        logsEndRef.current?.scrollIntoView({ behavior: 'smooth' });
+      }
+    }
+  }, [logs, logsEndRef]);
+
+  const lines = logs.split('\n').filter(Boolean);
+
+  return (
+    <div className="bg-gray-900 rounded-lg border border-gray-700 overflow-hidden">
+      <div className="flex items-center justify-between px-4 py-2 bg-gray-800 border-b border-gray-700">
+        <h3 className="text-sm font-medium text-gray-300 uppercase tracking-wide">Logs</h3>
+        <div className="flex items-center gap-2">
+          {isStreaming && !done && (
+            <span className="flex items-center gap-1.5 text-xs text-gray-400">
+              <span className={`w-2 h-2 rounded-full ${connected ? 'bg-green-400 animate-pulse' : 'bg-yellow-400'}`} />
+              {connected ? 'Streaming' : 'Connecting...'}
+            </span>
+          )}
+          {done && (
+            <span className="text-xs text-gray-500">Complete</span>
+          )}
+          <span className="text-xs text-gray-600">{lines.length} lines</span>
+        </div>
+      </div>
+      <div
+        ref={containerRef}
+        className="p-4 max-h-[32rem] overflow-auto font-mono text-xs leading-5"
+      >
+        {lines.map((line, i) => (
+          <LogLine key={i} line={line} />
+        ))}
+        <div ref={logsEndRef} />
+      </div>
+    </div>
+  );
+}
+
 export function TaskDetailPage() {
   const { id } = useParams<{ id: string }>();
   const { data: task, loading, error } = useTask(id!);
   const { data: artifacts } = useArtifacts(id!);
+  const { logs, connected, done: logsDone } = useTaskLogs(id!, task?.status || '');
+  const logsEndRef = useRef<HTMLDivElement>(null);
 
   if (loading && !task) return <div className="text-sm text-gray-500">Loading...</div>;
   if (error) return <div className="text-sm text-red-600">{error}</div>;
@@ -77,6 +158,17 @@ export function TaskDetailPage() {
           </pre>
         </div>
       </div>
+
+      {/* Live Logs */}
+      {logs && (
+        <LogsPanel
+          logs={logs}
+          connected={connected}
+          done={logsDone}
+          status={task.status}
+          logsEndRef={logsEndRef}
+        />
+      )}
 
       {/* Result */}
       {task.result && (

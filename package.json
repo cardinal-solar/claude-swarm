@@ -64,6 +64,7 @@
     "node": ">=20.0.0"
   },
   "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.2.47",
     "@hono/node-server": "^1.19.9",
     "adm-zip": "^0.5.16",
     "better-sqlite3": "^12.6.2",
