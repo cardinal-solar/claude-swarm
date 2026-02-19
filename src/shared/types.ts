@@ -1,5 +1,5 @@
 export type TaskStatus = 'queued' | 'running' | 'completed' | 'failed' | 'cancelled';
-export type ExecutionMode = 'process' | 'container';
+export type ExecutionMode = 'process' | 'container' | 'sdk';
 
 export interface McpServerConfig {
   name: string;
@@ -68,6 +68,7 @@ export interface ExecutorResult {
   logs: string;
   artifacts: string[];
   duration: number;
+  cost?: number;
   error?: {
     code: string;
     message: string;
@@ -78,4 +79,23 @@ export interface SchedulerStatus {
   running: number;
   queued: number;
   maxConcurrency: number;
+}
+
+export type KnowledgeStatus = 'active' | 'draft' | 'deprecated';
+export type KnowledgeSource = 'auto' | 'manual';
+
+export interface KnowledgeEntry {
+  id: string;
+  title: string;
+  description: string;
+  tags: string[];
+  category?: string;
+  status: KnowledgeStatus;
+  avgRating: number;
+  voteCount: number;
+  source: KnowledgeSource;
+  originTaskId?: string;
+  folderPath: string;
+  createdAt: string;
+  updatedAt: string;
 }

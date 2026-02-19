@@ -16,8 +16,11 @@ describe('getConfig', () => {
     const config = getConfig();
     expect(config.port).toBe(3000);
     expect(config.maxConcurrency).toBe(3);
-    expect(config.defaultTimeout).toBe(300000);
-    expect(config.defaultMode).toBe('process');
+    expect(config.defaultTimeout).toBe(900000);
+    expect(config.defaultMode).toBe('sdk');
+    expect(config.knowledgeMaxContext).toBe(20);
+    expect(config.knowledgeAutoLearn).toBe(true);
+    expect(config.knowledgeDir).toContain('knowledge');
   });
 
   it('reads from environment variables', () => {

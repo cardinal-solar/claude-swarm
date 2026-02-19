@@ -1,3 +1,67 @@
+# Task Creation UI Implementation Plan
+
+> **For Claude:** REQUIRED SUB-SKILL: Use superpowers:executing-plans to implement this plan task-by-task.
+
+**Goal:** Add an inline task creation form to the dashboard TasksPage so users can create tasks without calling the API directly.
+
+**Architecture:** Add a `tasks.create` method to the API client, then add a collapsible inline form to TasksPage following the existing ProfilesPage pattern. On success, navigate to the task detail page for live log streaming.
+
+**Tech Stack:** React 19, React Router v7, Tailwind CSS 4, TypeScript
+
+---
+
+### Task 1: Add `tasks.create` to API client
+
+**Files:**
+- Modify: `web/src/lib/api-client.ts`
+
+**Step 1: Add CreateTaskInput interface and create method**
+
+Add the interface after the existing `TaskRecord` interface (~line 15), and add the `create` method to `api.tasks` (~line 68):
+
+```typescript
+// After TaskRecord interface (line 15)
+export interface CreateTaskInput {
+  prompt: string;
+  apiKey: string;
+  mode: 'process' | 'container' | 'sdk';
+}
+```
+
+```typescript
+// Inside api.tasks object, after artifactUrl (line 70)
+create: (data: CreateTaskInput) =>
+  fetchJson<TaskRecord>('/tasks', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data),
+  }),
+```
+
+**Step 2: Verify TypeScript compiles**
+
+Run: `cd web && npx tsc --noEmit`
+Expected: No errors
+
+**Step 3: Commit**
+
+```bash
+git add web/src/lib/api-client.ts
+git commit -m "feat: add tasks.create to API client"
+```
+
+---
+
+### Task 2: Add inline create form to TasksPage
+
+**Files:**
+- Modify: `web/src/pages/TasksPage.tsx`
+
+**Step 1: Add the create task form**
+
+Replace entire `TasksPage.tsx` with:
+
+```tsx
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useTasks } from '@/hooks/useTasks';
@@ -34,7 +98,6 @@ export function TasksPage() {
       navigate(`/app/tasks/${task.id}`);
     } catch (e) {
       setFormError((e as Error).message);
-    } finally {
       setSubmitting(false);
     }
   }
@@ -115,3 +178,22 @@ export function TasksPage() {
     </div>
   );
 }
+```
+
+**Step 2: Verify TypeScript compiles**
+
+Run: `cd web && npx tsc --noEmit`
+Expected: No errors
+
+**Step 3: Verify dev server renders**
+
+Run: `cd web && npm run dev`
+Open: `http://localhost:5173/app`
+Verify: "+ New Task" button visible, clicking it shows the form, Cancel hides it.
+
+**Step 4: Commit**
+
+```bash
+git add web/src/pages/TasksPage.tsx
+git commit -m "feat: add task creation form to dashboard"
+```

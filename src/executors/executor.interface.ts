@@ -1,4 +1,4 @@
-import type { ExecutorResult } from '../shared/types';
+import type { ExecutorResult, McpServerConfig } from '../shared/types';
 
 export interface ExecuteParams {
   taskId: string;
@@ -9,6 +9,7 @@ export interface ExecuteParams {
   timeout?: number;
   model?: string;
   permissionMode?: string;
+  mcpServers?: McpServerConfig[];
   onOutput?: (chunk: string) => void;
 }
 

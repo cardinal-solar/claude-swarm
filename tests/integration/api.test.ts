@@ -24,6 +24,24 @@ vi.mock('../../src/executors/process.executor', () => {
   };
 });
 
+// Mock the SdkExecutor to avoid needing a real API key
+vi.mock('../../src/executors/sdk.executor', () => {
+  return {
+    SdkExecutor: class MockSdkExecutor {
+      execute = vi.fn().mockResolvedValue({
+        success: true,
+        data: { result: 'ok' },
+        valid: true,
+        logs: '',
+        artifacts: [],
+        duration: 100,
+        cost: 0.01,
+      });
+      cancel = vi.fn();
+    },
+  };
+});
+
 describe('API Integration', () => {
   let app: ReturnType<typeof createApp>;
   let baseDir: string;
@@ -37,6 +55,8 @@ describe('API Integration', () => {
     app = createApp({
       db,
       workspacesDir: baseDir,
+      knowledgeDir: path.join(baseDir, 'knowledge'),
+      knowledgeMaxContext: 20,
       maxConcurrency: 2,
       defaultMode: 'process',
       defaultTimeout: 300000,
@@ -100,6 +120,82 @@ describe('API Integration', () => {
     it('returns 404 for unknown task', async () => {
       const res = await app.request('/api/tasks/nonexistent');
       expect(res.status).toBe(404);
+    });
+  });
+
+  describe('Knowledge API', () => {
+    const sampleEntry = {
+      title: 'Test Knowledge Entry',
+      description: 'A sample knowledge entry for testing',
+      tags: ['test', 'integration'],
+      promptTemplate: 'Use this knowledge to {{task}}',
+    };
+
+    it('POST /knowledge creates an entry', async () => {
+      const res = await app.request('/api/knowledge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sampleEntry),
+      });
+      expect(res.status).toBe(201);
+      const body = await res.json();
+      expect(body.title).toBe(sampleEntry.title);
+      expect(body.source).toBe('manual');
+    });
+
+    it('GET /knowledge lists entries', async () => {
+      // Create one entry first
+      await app.request('/api/knowledge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sampleEntry),
+      });
+
+      const res = await app.request('/api/knowledge');
+      expect(res.status).toBe(200);
+      const body = await res.json();
+      expect(body.data.length).toBeGreaterThanOrEqual(1);
+    });
+
+    it('POST /knowledge/:id/rate rates an entry', async () => {
+      // Create entry
+      const createRes = await app.request('/api/knowledge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sampleEntry),
+      });
+      const created = await createRes.json();
+
+      // Rate it
+      const rateRes = await app.request(`/api/knowledge/${created.id}/rate`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ score: 4 }),
+      });
+      expect(rateRes.status).toBe(200);
+      const rateBody = await rateRes.json();
+      expect(rateBody.average).toBe(4);
+      expect(rateBody.count).toBe(1);
+    });
+
+    it('DELETE /knowledge/:id deletes an entry', async () => {
+      // Create entry
+      const createRes = await app.request('/api/knowledge', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(sampleEntry),
+      });
+      const created = await createRes.json();
+
+      // Delete it
+      const deleteRes = await app.request(`/api/knowledge/${created.id}`, {
+        method: 'DELETE',
+      });
+      expect(deleteRes.status).toBe(200);
+
+      // Verify it's gone
+      const getRes = await app.request(`/api/knowledge/${created.id}`);
+      expect(getRes.status).toBe(404);
     });
   });
 });

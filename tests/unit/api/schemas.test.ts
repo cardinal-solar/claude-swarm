@@ -43,6 +43,18 @@ describe('CreateTaskSchema', () => {
     });
     expect(result.success).toBe(true);
   });
+
+  it('accepts sdk execution mode', () => {
+    const result = CreateTaskSchema.safeParse({
+      prompt: 'Hello world',
+      apiKey: 'sk-ant-123',
+      mode: 'sdk',
+    });
+    expect(result.success).toBe(true);
+    if (result.success) {
+      expect(result.data.mode).toBe('sdk');
+    }
+  });
 });
 
 describe('CreateMcpProfileSchema', () => {

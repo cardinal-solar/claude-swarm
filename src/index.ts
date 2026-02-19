@@ -13,6 +13,7 @@ const logger = createLogger(config.logLevel);
 
 fs.mkdirSync(config.dataDir, { recursive: true });
 fs.mkdirSync(config.workspacesDir, { recursive: true });
+fs.mkdirSync(config.knowledgeDir, { recursive: true });
 
 const sqlite = new Database(config.dbPath);
 sqlite.pragma('journal_mode = WAL');
@@ -22,6 +23,9 @@ const db = drizzle(sqlite);
 const app = createApp({
   db,
   workspacesDir: config.workspacesDir,
+  knowledgeDir: config.knowledgeDir,
+  knowledgeMaxContext: config.knowledgeMaxContext,
+  knowledgeAutoLearn: config.knowledgeAutoLearn,
   maxConcurrency: config.maxConcurrency,
   defaultMode: config.defaultMode,
   defaultTimeout: config.defaultTimeout,

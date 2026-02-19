@@ -22,3 +22,19 @@ export const mcpProfiles = sqliteTable('mcp_profiles', {
   serversJson: text('servers_json').notNull(),
   createdAt: text('created_at').notNull(),
 });
+
+export const knowledgeEntries = sqliteTable('knowledge_entries', {
+  id: text('id').primaryKey(),
+  title: text('title').notNull(),
+  description: text('description').notNull(),
+  tagsJson: text('tags_json'),
+  category: text('category'),
+  status: text('status').notNull().default('active'),
+  avgRating: integer('avg_rating').notNull().default(0),
+  voteCount: integer('vote_count').notNull().default(0),
+  source: text('source').notNull().default('auto'),
+  originTaskId: text('origin_task_id'),
+  folderPath: text('folder_path').notNull(),
+  createdAt: text('created_at').notNull(),
+  updatedAt: text('updated_at').notNull(),
+});

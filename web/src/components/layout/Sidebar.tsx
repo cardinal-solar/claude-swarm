@@ -3,6 +3,7 @@ import { NavLink } from 'react-router-dom';
 const links = [
   { to: '/app', label: 'Tasks', icon: '>' },
   { to: '/app/profiles', label: 'MCP Profiles', icon: '#' },
+  { to: '/app/knowledge', label: 'Knowledge', icon: '*' },
   { to: '/app/health', label: 'Health', icon: '+' },
 ];
 

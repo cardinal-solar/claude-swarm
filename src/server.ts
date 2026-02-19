@@ -4,6 +4,7 @@ import { serveStatic } from '@hono/node-server/serve-static';
 import { BetterSQLite3Database } from 'drizzle-orm/better-sqlite3';
 import { TaskStore } from './storage/task.store';
 import { McpProfileStore } from './storage/mcp-profile.store';
+import { TaskLogStore } from './storage/task-log.store';
 import { Scheduler } from './scheduler/scheduler';
 import { WorkspaceManager } from './workspace/workspace-manager';
 import { TaskService } from './services/task.service';
@@ -12,11 +13,18 @@ import { HealthService } from './services/health.service';
 import { taskRoutes } from './api/routes/tasks';
 import { mcpProfileRoutes } from './api/routes/mcp-profiles';
 import { healthRoutes } from './api/routes/health';
+import { KnowledgeStore } from './storage/knowledge.store';
+import { KnowledgeManager } from './workspace/knowledge-manager';
+import { KnowledgeService } from './services/knowledge.service';
+import { knowledgeRoutes } from './api/routes/knowledge';
 import type { ExecutionMode } from './shared/types';
 
 interface AppOptions {
   db: BetterSQLite3Database;
   workspacesDir: string;
+  knowledgeDir: string;
+  knowledgeMaxContext: number;
+  knowledgeAutoLearn?: boolean;
   maxConcurrency: number;
   defaultMode: ExecutionMode;
   defaultTimeout: number;
@@ -28,11 +36,23 @@ export function createApp(opts: AppOptions) {
   const app = new Hono();
   const taskStore = new TaskStore(opts.db);
   const mcpProfileStore = new McpProfileStore(opts.db);
+  const taskLogStore = new TaskLogStore();
   const scheduler = new Scheduler({ maxConcurrency: opts.maxConcurrency });
   const workspaceManager = new WorkspaceManager(opts.workspacesDir);
 
+  const knowledgeStore = new KnowledgeStore(opts.db);
+  const knowledgeManager = new KnowledgeManager(opts.knowledgeDir);
+  const knowledgeService = new KnowledgeService({
+    store: knowledgeStore,
+    manager: knowledgeManager,
+    maxContext: opts.knowledgeMaxContext,
+  });
+
   const taskService = new TaskService({
     taskStore, scheduler, workspaceManager, mcpProfileStore,
+    knowledgeService,
+    knowledgeAutoLearn: opts.knowledgeAutoLearn ?? true,
+    taskLogStore,
     defaultMode: opts.defaultMode, defaultTimeout: opts.defaultTimeout,
   });
   const mcpProfileService = new McpProfileService(mcpProfileStore);
@@ -42,6 +62,7 @@ export function createApp(opts: AppOptions) {
   api.route('/tasks', taskRoutes(taskService));
   api.route('/mcp-profiles', mcpProfileRoutes(mcpProfileService));
   api.route('/health', healthRoutes(healthService));
+  api.route('/knowledge', knowledgeRoutes(knowledgeService));
   app.route('/api', api);
 
   if (opts.webDistDir) {

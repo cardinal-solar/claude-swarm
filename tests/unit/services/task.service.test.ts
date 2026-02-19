@@ -5,18 +5,31 @@ import { TaskService } from '../../../src/services/task.service';
 import { TaskStore } from '../../../src/storage/task.store';
 import { Scheduler } from '../../../src/scheduler/scheduler';
 import { WorkspaceManager } from '../../../src/workspace/workspace-manager';
+import { KnowledgeService } from '../../../src/services/knowledge.service';
+import { TaskLogStore } from '../../../src/storage/task-log.store';
 import { initializeDatabase } from '../../../src/storage/database';
 import * as os from 'os';
 import * as path from 'path';
 import * as fs from 'fs/promises';
 
-// Mock the ProcessExecutor to avoid needing claude-task-runner.
-// The execute mock returns a promise that never resolves so that the task
-// stays in 'running' status during synchronous assertions.
+// Mock the ProcessExecutor to avoid needing claude CLI.
+// By default, execute returns a promise that never resolves so tasks stay 'running'.
+// Individual tests can override via mockExecuteResult.
+let mockExecuteResult: Promise<any> = new Promise(() => {});
 vi.mock('../../../src/executors/process.executor', () => {
   return {
     ProcessExecutor: class MockProcessExecutor {
-      execute = vi.fn().mockReturnValue(new Promise(() => {}));
+      execute = vi.fn().mockImplementation(() => mockExecuteResult);
+      cancel = vi.fn();
+    },
+  };
+});
+
+// Mock the SdkExecutor similarly
+vi.mock('../../../src/executors/sdk.executor', () => {
+  return {
+    SdkExecutor: class MockSdkExecutor {
+      execute = vi.fn().mockImplementation(() => mockExecuteResult);
       cancel = vi.fn();
     },
   };
@@ -28,6 +41,9 @@ describe('TaskService', () => {
   let baseDir: string;
 
   beforeEach(async () => {
+    // Reset to never-resolving by default
+    mockExecuteResult = new Promise(() => {});
+
     const sqlite = new Database(':memory:');
     const db = drizzle(sqlite);
     initializeDatabase(sqlite);
@@ -40,6 +56,7 @@ describe('TaskService', () => {
       taskStore,
       scheduler,
       workspaceManager: workspace,
+      taskLogStore: new TaskLogStore(),
       defaultMode: 'process',
       defaultTimeout: 300000,
     });
@@ -74,5 +91,347 @@ describe('TaskService', () => {
     await service.createTask({ prompt: 'B', apiKey: 'k' });
     const tasks = service.listTasks();
     expect(tasks).toHaveLength(2);
+  });
+});
+
+describe('TaskService - Knowledge Integration', () => {
+  let taskStore: TaskStore;
+  let scheduler: Scheduler;
+  let workspaceManager: WorkspaceManager;
+  let baseDir: string;
+
+  beforeEach(async () => {
+    // Reset to never-resolving by default
+    mockExecuteResult = new Promise(() => {});
+
+    const sqlite = new Database(':memory:');
+    const db = drizzle(sqlite);
+    initializeDatabase(sqlite);
+    taskStore = new TaskStore(db);
+    baseDir = await fs.mkdtemp(path.join(os.tmpdir(), 'swarm-know-'));
+    workspaceManager = new WorkspaceManager(baseDir);
+    scheduler = new Scheduler({ maxConcurrency: 2 });
+  });
+
+  it('injects knowledge context into the prompt when knowledgeService is provided', async () => {
+    const mockKnowledgeService = {
+      buildContext: vi.fn().mockResolvedValue('# Available Knowledge\n\n## 1. Test Skill\n> A test skill\n\n# Test prompt template\n'),
+      learnFromWorkspace: vi.fn().mockResolvedValue(null),
+    } as unknown as KnowledgeService;
+
+    const enqueueSpy = vi.spyOn(scheduler, 'enqueue');
+
+    const service = new TaskService({
+      taskStore,
+      scheduler,
+      workspaceManager,
+      knowledgeService: mockKnowledgeService,
+      knowledgeAutoLearn: true,
+      taskLogStore: new TaskLogStore(),
+      defaultMode: 'process',
+      defaultTimeout: 300000,
+    });
+
+    await service.createTask({
+      prompt: 'Build a web app',
+      apiKey: 'sk-test',
+    });
+
+    expect(mockKnowledgeService.buildContext).toHaveBeenCalledWith('Build a web app');
+    expect(enqueueSpy).toHaveBeenCalledTimes(1);
+
+    const enqueueArg = enqueueSpy.mock.calls[0][0];
+    // The prompt should contain the knowledge context followed by separator
+    expect(enqueueArg.params.prompt).toContain('# Available Knowledge');
+    expect(enqueueArg.params.prompt).toContain('Test Skill');
+    expect(enqueueArg.params.prompt).toContain('---');
+    // The original prompt should follow
+    expect(enqueueArg.params.prompt).toContain('Build a web app');
+    // Learning instructions should NOT be appended when knowledge context was matched
+    expect(enqueueArg.params.prompt).not.toContain('AFTER completing the task above');
+    expect(enqueueArg.params.prompt).not.toContain('.knowledge/skill.yaml');
+  });
+
+  it('does not inject knowledge context when buildContext returns empty string', async () => {
+    const mockKnowledgeService = {
+      buildContext: vi.fn().mockResolvedValue(''),
+      learnFromWorkspace: vi.fn().mockResolvedValue(null),
+    } as unknown as KnowledgeService;
+
+    const enqueueSpy = vi.spyOn(scheduler, 'enqueue');
+
+    const service = new TaskService({
+      taskStore,
+      scheduler,
+      workspaceManager,
+      knowledgeService: mockKnowledgeService,
+      knowledgeAutoLearn: true,
+      taskLogStore: new TaskLogStore(),
+      defaultMode: 'process',
+      defaultTimeout: 300000,
+    });
+
+    await service.createTask({
+      prompt: 'Build a web app',
+      apiKey: 'sk-test',
+    });
+
+    const enqueueArg = enqueueSpy.mock.calls[0][0];
+    // Should NOT contain the separator when context is empty
+    expect(enqueueArg.params.prompt).not.toContain('---');
+    // Should start with the original prompt (no knowledge prefix)
+    expect(enqueueArg.params.prompt).toMatch(/^Build a web app/);
+    // But should still have learning instructions
+    expect(enqueueArg.params.prompt).toContain('AFTER completing the task above');
+  });
+
+  it('does not include learning instructions when knowledgeAutoLearn is false', async () => {
+    const mockKnowledgeService = {
+      buildContext: vi.fn().mockResolvedValue(''),
+      learnFromWorkspace: vi.fn().mockResolvedValue(null),
+    } as unknown as KnowledgeService;
+
+    const enqueueSpy = vi.spyOn(scheduler, 'enqueue');
+
+    const service = new TaskService({
+      taskStore,
+      scheduler,
+      workspaceManager,
+      knowledgeService: mockKnowledgeService,
+      knowledgeAutoLearn: false,
+      taskLogStore: new TaskLogStore(),
+      defaultMode: 'process',
+      defaultTimeout: 300000,
+    });
+
+    await service.createTask({
+      prompt: 'Build a web app',
+      apiKey: 'sk-test',
+    });
+
+    const enqueueArg = enqueueSpy.mock.calls[0][0];
+    // Should NOT contain learning instructions
+    expect(enqueueArg.params.prompt).not.toContain('AFTER completing the task above');
+    expect(enqueueArg.params.prompt).not.toContain('.knowledge/');
+  });
+
+  it('does not inject knowledge context when no knowledgeService is provided', async () => {
+    const enqueueSpy = vi.spyOn(scheduler, 'enqueue');
+
+    const service = new TaskService({
+      taskStore,
+      scheduler,
+      workspaceManager,
+      taskLogStore: new TaskLogStore(),
+      defaultMode: 'process',
+      defaultTimeout: 300000,
+    });
+
+    await service.createTask({
+      prompt: 'Build a web app',
+      apiKey: 'sk-test',
+    });
+
+    const enqueueArg = enqueueSpy.mock.calls[0][0];
+    // Without knowledgeService, prompt should just be the original
+    expect(enqueueArg.params.prompt).toBe('Build a web app');
+  });
+
+  it('calls learnFromWorkspace after successful task completion', async () => {
+    const mockKnowledgeService = {
+      buildContext: vi.fn().mockResolvedValue(''),
+      learnFromWorkspace: vi.fn().mockResolvedValue(null),
+    } as unknown as KnowledgeService;
+
+    // Make the executor resolve with a success result
+    mockExecuteResult = Promise.resolve({
+      success: true,
+      data: { result: 'done' },
+      valid: true,
+      logs: '',
+      artifacts: [],
+      duration: 100,
+    });
+
+    const service = new TaskService({
+      taskStore,
+      scheduler,
+      workspaceManager,
+      knowledgeService: mockKnowledgeService,
+      knowledgeAutoLearn: true,
+      taskLogStore: new TaskLogStore(),
+      defaultMode: 'process',
+      defaultTimeout: 300000,
+    });
+
+    const { id } = await service.createTask({
+      prompt: 'Build something',
+      apiKey: 'sk-test',
+    });
+
+    // Wait for the executor to resolve and onComplete to fire
+    // The scheduler runs the task asynchronously, so we need to wait
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(mockKnowledgeService.learnFromWorkspace).toHaveBeenCalledTimes(1);
+    expect(mockKnowledgeService.learnFromWorkspace).toHaveBeenCalledWith(
+      expect.stringContaining(baseDir),
+      id,
+    );
+  });
+
+  it('does not call learnFromWorkspace after failed task', async () => {
+    const mockKnowledgeService = {
+      buildContext: vi.fn().mockResolvedValue(''),
+      learnFromWorkspace: vi.fn().mockResolvedValue(null),
+    } as unknown as KnowledgeService;
+
+    // Make the executor resolve with a failure result
+    mockExecuteResult = Promise.resolve({
+      success: false,
+      logs: 'error output',
+      artifacts: [],
+      duration: 50,
+      error: { code: 'PROCESS_ERROR', message: 'Something went wrong' },
+    });
+
+    const service = new TaskService({
+      taskStore,
+      scheduler,
+      workspaceManager,
+      knowledgeService: mockKnowledgeService,
+      knowledgeAutoLearn: true,
+      taskLogStore: new TaskLogStore(),
+      defaultMode: 'process',
+      defaultTimeout: 300000,
+    });
+
+    await service.createTask({
+      prompt: 'Build something',
+      apiKey: 'sk-test',
+    });
+
+    // Wait for the executor to resolve and onComplete to fire
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    // Knowledge learning now runs even on failed tasks (timed-out tasks may have produced .knowledge/)
+    expect(mockKnowledgeService.learnFromWorkspace).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not fail the task if learnFromWorkspace throws', async () => {
+    const mockKnowledgeService = {
+      buildContext: vi.fn().mockResolvedValue(''),
+      learnFromWorkspace: vi.fn().mockRejectedValue(new Error('Learning failed')),
+    } as unknown as KnowledgeService;
+
+    // Make the executor resolve with a success result
+    mockExecuteResult = Promise.resolve({
+      success: true,
+      data: { result: 'done' },
+      valid: true,
+      logs: '',
+      artifacts: [],
+      duration: 100,
+    });
+
+    const service = new TaskService({
+      taskStore,
+      scheduler,
+      workspaceManager,
+      knowledgeService: mockKnowledgeService,
+      knowledgeAutoLearn: true,
+      taskLogStore: new TaskLogStore(),
+      defaultMode: 'process',
+      defaultTimeout: 300000,
+    });
+
+    const { id } = await service.createTask({
+      prompt: 'Build something',
+      apiKey: 'sk-test',
+    });
+
+    // Wait for onComplete to fire (including the async learnFromWorkspace)
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    // Despite learnFromWorkspace throwing, the task should be completed
+    const task = service.getTask(id);
+    expect(task.status).toBe('completed');
+    // learnFromWorkspace was called (it just failed)
+    expect(mockKnowledgeService.learnFromWorkspace).toHaveBeenCalledTimes(1);
+  });
+
+  it('does not call learnFromWorkspace when knowledge context was matched', async () => {
+    const mockKnowledgeService = {
+      buildContext: vi.fn().mockResolvedValue('# Available Knowledge\n\n## 1. Test Skill\n> A test skill\n'),
+      learnFromWorkspace: vi.fn().mockResolvedValue(null),
+    } as unknown as KnowledgeService;
+
+    // Make the executor resolve with a success result
+    mockExecuteResult = Promise.resolve({
+      success: true,
+      data: { result: 'done' },
+      valid: true,
+      logs: '',
+      artifacts: [],
+      duration: 100,
+    });
+
+    const service = new TaskService({
+      taskStore,
+      scheduler,
+      workspaceManager,
+      knowledgeService: mockKnowledgeService,
+      knowledgeAutoLearn: true,
+      taskLogStore: new TaskLogStore(),
+      defaultMode: 'process',
+      defaultTimeout: 300000,
+    });
+
+    await service.createTask({
+      prompt: 'Build something',
+      apiKey: 'sk-test',
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    // When knowledge was matched, learnFromWorkspace should NOT be called
+    expect(mockKnowledgeService.learnFromWorkspace).not.toHaveBeenCalled();
+  });
+
+  it('does not call learnFromWorkspace when knowledgeAutoLearn is false', async () => {
+    const mockKnowledgeService = {
+      buildContext: vi.fn().mockResolvedValue(''),
+      learnFromWorkspace: vi.fn().mockResolvedValue(null),
+    } as unknown as KnowledgeService;
+
+    // Make the executor resolve with a success result
+    mockExecuteResult = Promise.resolve({
+      success: true,
+      data: { result: 'done' },
+      valid: true,
+      logs: '',
+      artifacts: [],
+      duration: 100,
+    });
+
+    const service = new TaskService({
+      taskStore,
+      scheduler,
+      workspaceManager,
+      knowledgeService: mockKnowledgeService,
+      knowledgeAutoLearn: false,
+      taskLogStore: new TaskLogStore(),
+      defaultMode: 'process',
+      defaultTimeout: 300000,
+    });
+
+    await service.createTask({
+      prompt: 'Build something',
+      apiKey: 'sk-test',
+    });
+
+    await new Promise((resolve) => setTimeout(resolve, 50));
+
+    expect(mockKnowledgeService.learnFromWorkspace).not.toHaveBeenCalled();
   });
 });

@@ -2,6 +2,22 @@ import type { TaskRecord, McpProfile } from '../src/shared/types';
 
 export interface ClaudeOpsOptions { baseUrl: string; }
 
+export interface KnowledgeEntry {
+  id: string;
+  title: string;
+  description: string;
+  tags: string[];
+  category?: string;
+  status: string;
+  avgRating: number;
+  voteCount: number;
+  source: string;
+  originTaskId?: string;
+  folderPath: string;
+  createdAt: string;
+  updatedAt: string;
+}
+
 export class ClaudeOpsError extends Error {
   constructor(public readonly status: number, public readonly error: { code: string; message: string }) {
     super(`${error.code}: ${error.message}`);
@@ -35,6 +51,32 @@ export class ClaudeOps {
   async listMcpProfiles(): Promise<McpProfile[]> { return this.get('/api/mcp-profiles'); }
 
   async deleteMcpProfile(id: string): Promise<void> { await this.delete(`/api/mcp-profiles/${id}`); }
+
+  async listKnowledge(filter?: { status?: string; category?: string; tag?: string; sort?: string }): Promise<{ data: KnowledgeEntry[]; total: number }> {
+    const params = new URLSearchParams();
+    if (filter?.status) params.set('status', filter.status);
+    if (filter?.category) params.set('category', filter.category);
+    if (filter?.tag) params.set('tag', filter.tag);
+    if (filter?.sort) params.set('sort', filter.sort);
+    const qs = params.toString();
+    return this.get(`/api/knowledge${qs ? `?${qs}` : ''}`);
+  }
+
+  async getKnowledge(id: string): Promise<KnowledgeEntry> {
+    return this.get(`/api/knowledge/${id}`);
+  }
+
+  async createKnowledge(input: { title: string; description: string; tags?: string[]; category?: string; promptTemplate: string }): Promise<KnowledgeEntry> {
+    return this.post('/api/knowledge', input);
+  }
+
+  async rateKnowledge(id: string, score: number): Promise<{ average: number; count: number }> {
+    return this.post(`/api/knowledge/${id}/rate`, { score });
+  }
+
+  async deleteKnowledge(id: string): Promise<void> {
+    await this.delete(`/api/knowledge/${id}`);
+  }
 
   async waitForCompletion(id: string, pollIntervalMs = 2000): Promise<TaskRecord> {
     let task = await this.getTask(id);

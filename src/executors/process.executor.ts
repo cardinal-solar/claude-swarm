@@ -59,11 +59,12 @@ export class ProcessExecutor implements Executor {
 
       child.stdout?.on('data', (chunk: Buffer) => {
         stdout += chunk.toString();
-        params.onOutput?.(chunk.toString());
       });
 
       child.stderr?.on('data', (chunk: Buffer) => {
         stderr += chunk.toString();
+        // Stream stderr to onOutput - this is where claude writes progress/logs
+        params.onOutput?.(chunk.toString());
       });
 
       let timeoutId: NodeJS.Timeout | undefined;
