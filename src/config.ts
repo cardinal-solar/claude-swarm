@@ -19,10 +19,10 @@ export interface SwarmConfig {
 export function getConfig(): SwarmConfig {
   const dataDir = process.env.DATA_DIR || path.join(process.cwd(), 'data');
   return {
-    port: parseInt(process.env.PORT || '3000', 10),
+    port: parseInt(process.env.PORT || '3030', 10),
     host: process.env.HOST || '0.0.0.0',
     maxConcurrency: parseInt(process.env.MAX_CONCURRENCY || '3', 10),
-    defaultTimeout: parseInt(process.env.DEFAULT_TIMEOUT || '900000', 10),
+    defaultTimeout: parseInt(process.env.DEFAULT_TIMEOUT || '1800000', 10),
     defaultMode: (process.env.DEFAULT_MODE as ExecutionMode) || 'sdk',
     dataDir,
     dbPath: process.env.DB_PATH || path.join(dataDir, 'swarm.db'),

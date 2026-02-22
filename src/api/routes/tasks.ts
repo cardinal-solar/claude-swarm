@@ -29,12 +29,30 @@ export function taskRoutes(taskService: TaskService) {
   const router = new Hono();
 
   router.post('/', async (c) => {
-    const body = await c.req.json();
+    let body: unknown;
+    let zipBuffer: Buffer | undefined;
+
+    const contentType = c.req.header('content-type') || '';
+    if (contentType.includes('multipart/form-data')) {
+      const formData = await c.req.formData();
+      const dataField = formData.get('data');
+      if (!dataField || typeof dataField !== 'string') {
+        return c.json({ error: { code: 'VALIDATION_ERROR', message: 'Multipart request must include a "data" field with JSON task config' } }, 400);
+      }
+      body = JSON.parse(dataField);
+      const filesField = formData.get('files');
+      if (filesField && filesField instanceof File) {
+        zipBuffer = Buffer.from(await filesField.arrayBuffer());
+      }
+    } else {
+      body = await c.req.json();
+    }
+
     const parsed = CreateTaskSchema.safeParse(body);
     if (!parsed.success) {
       return c.json({ error: { code: 'VALIDATION_ERROR', message: 'Invalid request', details: parsed.error.issues } }, 400);
     }
-    const { id } = await taskService.createTask(parsed.data);
+    const { id } = await taskService.createTask({ ...parsed.data, zipBuffer });
     const task = taskService.getTask(id);
     return c.json(task, 202);
   });
