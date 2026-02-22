@@ -28,10 +28,12 @@ FROM node:20-slim
 
 WORKDIR /app
 
-# Install runtime deps: C++ build tools (for better-sqlite3) + python3-weasyprint (for PDF generation)
+# Install runtime deps: C++ build tools (for better-sqlite3) + WeasyPrint deps (for PDF generation)
 RUN apt-get update && apt-get install -y \
-    python3 make g++ curl \
-    python3-weasyprint \
+    python3 python3-pip python3-venv make g++ curl \
+    libpangocairo-1.0-0 libpango-1.0-0 libcairo2 \
+    libgdk-pixbuf2.0-0 shared-mime-info libffi8 \
+    && pip3 install --break-system-packages weasyprint \
     && rm -rf /var/lib/apt/lists/*
 
 # Install production dependencies only
