@@ -1,0 +1,17 @@
+node_modules
+web/node_modules
+dist
+web/dist
+data
+.git
+.gitignore
+.env
+*.md
+docs
+tests
+notes.json
+output.xlsx
+workspace
+.vscode
+.idea
+*.log

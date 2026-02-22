@@ -1,20 +1,20 @@
-version: '3.8'
-
 services:
-  swarm:
-    build: .
+  claude-swarm:
+    image: alfercom/claude-swarm:latest
     ports:
-      - "3000:3000"
+      - "${PORT:-3030}:3030"
     volumes:
-      - ./data:/app/data
-    environment:
-      - PORT=3000
-      - MAX_CONCURRENCY=3
-      - DATA_DIR=/app/data
-      - LOG_LEVEL=info
+      - swarm-data:/app/data
+    env_file:
+      - .env
     restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:3030/api/health"]
+      interval: 30s
+      timeout: 5s
+      start_period: 10s
+      retries: 3
 
-  runner:
-    build: ./docker/runner
-    profiles:
-      - build-only
+volumes:
+  swarm-data:
+    driver: local
