@@ -36,10 +36,10 @@
     "test": "vitest",
     "test:run": "vitest run",
     "lint": "eslint src --ext .ts",
-    "docker:build": "docker build -t alfercom/claude-swarm:latest .",
+    "docker:build": "docker buildx build --platform linux/amd64,linux/arm64 -t alfercom/claude-swarm:latest --load .",
     "docker:tag": "docker tag alfercom/claude-swarm:latest alfercom/claude-swarm:$(node -p \"require('./package.json').version\")",
     "docker:push": "docker push alfercom/claude-swarm:$(node -p \"require('./package.json').version\") && docker push alfercom/claude-swarm:latest",
-    "docker:release": "npm run docker:build && npm run docker:tag && npm run docker:push",
+    "docker:release": "docker buildx build --platform linux/amd64,linux/arm64 -t alfercom/claude-swarm:latest -t alfercom/claude-swarm:$(node -p \"require('./package.json').version\") --push .",
     "prepublishOnly": "npm run test:run && npm run build:all"
   },
   "keywords": [
