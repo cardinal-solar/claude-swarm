@@ -106,6 +106,7 @@ export class TaskService {
         model: input.model,
         permissionMode: input.permissionMode,
         mcpServers: mcpServers.length > 0 ? mcpServers : undefined,
+        agents: input.agents,
         onOutput: (chunk) => {
           this.deps.taskLogStore.append(id, chunk);
         },

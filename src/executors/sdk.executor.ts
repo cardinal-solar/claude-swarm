@@ -59,6 +59,7 @@ export class SdkExecutor implements Executor {
           permissionMode: permissionMode as 'default' | 'acceptEdits' | 'bypassPermissions' | 'plan',
           allowDangerouslySkipPermissions: permissionMode === 'bypassPermissions',
           mcpServers: Object.keys(mcpServers).length > 0 ? mcpServers : undefined,
+          agents: params.agents,
           abortController,
           ...(params.schema ? { outputFormat: { type: 'json_schema' as const, schema: params.schema } } : {}),
         },

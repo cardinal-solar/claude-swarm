@@ -18,6 +18,15 @@ const TaskMcpSchema = z.object({
   profiles: z.array(z.string()).optional(),
 });
 
+const AgentDefinitionSchema = z.object({
+  description: z.string(),
+  prompt: z.string(),
+  model: z.enum(['sonnet', 'opus', 'haiku', 'inherit']).optional(),
+  tools: z.array(z.string()).optional(),
+  disallowedTools: z.array(z.string()).optional(),
+  maxTurns: z.number().optional(),
+});
+
 export const CreateTaskSchema = z.object({
   prompt: z.string().min(1),
   apiKey: z.string().min(1),
@@ -28,6 +37,7 @@ export const CreateTaskSchema = z.object({
   permissionMode: z.string().optional(),
   files: TaskFilesSchema.optional(),
   mcpServers: TaskMcpSchema.optional(),
+  agents: z.record(z.string(), AgentDefinitionSchema).optional(),
   tags: z.record(z.string(), z.string()).optional(),
 });
 
