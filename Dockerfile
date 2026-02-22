@@ -28,15 +28,18 @@ FROM node:20-slim
 
 WORKDIR /app
 
-# Install runtime deps for native modules
-RUN apt-get update && apt-get install -y python3 make g++ curl && rm -rf /var/lib/apt/lists/*
+# Install runtime deps: C++ build tools (for better-sqlite3) + python3-weasyprint (for PDF generation)
+RUN apt-get update && apt-get install -y \
+    python3 make g++ curl \
+    python3-weasyprint \
+    && rm -rf /var/lib/apt/lists/*
 
 # Install production dependencies only
 COPY package.json package-lock.json ./
 RUN npm ci --omit=dev && npm cache clean --force
 
-# Remove build tools after native compilation
-RUN apt-get purge -y python3 make g++ && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
+# Remove only C++ build tools — keep python3 + weasyprint for workspace PDF generation
+RUN apt-get purge -y make g++ && apt-get autoremove -y && rm -rf /var/lib/apt/lists/*
 
 # Copy compiled output from builder
 COPY --from=builder /app/dist/ ./dist/
